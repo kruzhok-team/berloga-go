@@ -1,0 +1,430 @@
+openapi: 3.1.0
+info:
+  title: Провайдер учетных данных Берлоги
+  version: '0.2'
+  description: Провайдер учетных данных для мобильных игр Берлоги. Предназначен для использования как мобильными приложениями, так и другими сервисами Берлоги. Для определения какому потребителю предназначена операция, нужно обратить внимание на её тэги.
+  contact:
+    email: talent@kruzhok.org
+servers:
+  - url: https://talent.kruzhok.org/berloga-idp
+    description: Production Server
+  - url: https://talent.test.kruzhok.org/berloga-idp
+    description: Development Server
+tags:
+  - name: application
+    description: Операции, предназначенные для приложений
+  - name: service
+    description: Операции, предназначенные для сервисов
+  - name: web
+    description: Операции, предназначенные для сайтов
+paths:
+  /applications:
+    get:
+      operationId: ApplicationsList
+      summary: Список приложений
+      description: |-
+        Список приложений.
+
+        По-умолчанию сортируется по дате создания от новых к старым (`order_by=created_at_desc`) и включает в себя только опубликованные приложения (`is_public=true`).
+      tags: [application, web]
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Count:
+              required: true
+              description: Общее кол-во приложений входящих в выборку без учета пагинации.
+              schema:
+                type: integer
+                format: int64
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Application'
+        default:
+          $ref: '#/components/responses/Error'
+      parameters:
+        - $ref: '#/components/parameters/offset'
+        - $ref: '#/components/parameters/limit'
+        - in: query
+          name: is_public
+          description: |-
+            Фильтрация по публичности приложений.
+
+            - true - только опубликованные
+            - false - только не опубликованные
+            - all - все
+          schema:
+            type: string
+            enum:
+              - !!str true
+              - !!str false
+              - all
+        - in: query
+          name: order_by
+          description: Порядок сортировки результатов.
+          schema:
+            type: string
+            enum:
+              - created_at_asc
+              - created_at_desc
+              - updated_at_asc
+              - updated_at_desc
+  /issue-token:
+    post:
+      operationId: IssueToken
+      summary: Запрос аутентификационного токена
+      description: |-
+        Запрос аутентфикационного токена игрока.
+
+        Токен имеет ограниченное непродолжительное время жизни.
+      tags: [application]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - application_id
+                - player_id
+                - player_secret
+              properties:
+                application_id:
+                  $ref: '#/components/schemas/ApplicationID'
+                player_id:
+                  $ref: '#/components/schemas/PlayerID'
+                player_secret:
+                  $ref: '#/components/schemas/PlayerSecret'
+      responses:
+        '201':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - token
+                  - expires_in
+                properties:
+                  token:
+                    type: string
+                    format: jwt
+                    description: Аутентификационный токен.
+                  expires_in:
+                    type: integer
+                    format: int32
+                    description: Кол-во секунд через которое истечет срок жизни токена.
+        default:
+          $ref: '#/components/responses/Error'
+  /player/{player_id}:
+    get:
+      operationId: PlayerGet
+      summary: Чтение информации об игроке
+      description: |-
+        Чтение информации об игроке.
+
+        По-умолчанию ответ не содержит каких-либо данных. Для того чтобы добавить в ответ какие-то из параметров игрока, нужно указать их соотвествующими параметрами запроса `get_*`.
+      security: [BerlogaJWT: [], ServiceKey: []]
+      tags: [application, service]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  talent_id:
+                    type: integer
+                    format: int32
+                    nullable: true
+                    description: Возвращается, если передан параметр `get_talent_id=true`. Если у игрока не имеется привязанной учетной записи Таланта, значением будет `null`.
+                  player_ids:
+                    type: array
+                    description: Возвращается, если передан параметр `get_player_ids=true`.
+                    items:
+                      $ref: '#/components/schemas/PlayerID'
+        '403':
+          $ref: '#/components/responses/Error'
+          description: Используется токен игрока, отличного от параметра `player_id`
+        default:
+          $ref: '#/components/responses/Error'
+    parameters:
+      - name: player_id
+        in: path
+        description: PlayerID игрока
+        required: true
+        schema:
+          $ref: '#/components/schemas/PlayerID'
+      - name: get_talent_id
+        in: query
+        description: Включить в ответ `talent_id`
+        schema:
+          type: boolean
+          default: false
+      - name: get_player_ids
+        in: query
+        description: Включить в ответ `player_ids`
+        schema:
+          type: boolean
+          default: false
+  /players:
+    post:
+      operationId: PlayersCreate
+      summary: Регистрация нового игрока
+      description: Регистрация нового PlayerID.
+      tags: [application]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - application_id
+                - device_id
+              properties:
+                application_id:
+                  $ref: '#/components/schemas/ApplicationID'
+                device_id:
+                  type: string
+                  description: DeviceID
+      responses:
+        '201':
+          description: Зарегистрирован
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - player_id
+                  - player_secret
+                properties:
+                  player_id:
+                    $ref: '#/components/schemas/PlayerID'
+                  player_secret:
+                    $ref: '#/components/schemas/PlayerSecret'
+        default:
+          $ref: '#/components/responses/Error'
+  /players/migrate:
+    post:
+      operationId: PlayersMigrate
+      summary: Миграция legacy PlayerID
+      description: |-
+        Миграция имеющихся данных о PlayerID под актуальное API сервисов Берлоги.
+
+        В ответе возвращается PlayerSecret, который обязательно нужно сохранить на клиенте. Без него не получится пройти авторизацию клиентского API и они станут не доступны для этого PlayerID.
+      tags: [application]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - application_id
+                - player_id
+              properties:
+                application_id:
+                  $ref: '#/components/schemas/ApplicationID'
+                player_id:
+                  $ref: '#/components/schemas/PlayerID'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - player_secret
+                properties:
+                  player_secret:
+                    $ref: '#/components/schemas/PlayerSecret'
+        default:
+          $ref: '#/components/responses/Error'
+  /talent-oauth/connect:
+    get:
+      operationId: TalentOAuthConnect
+      summary: Перенаправление на авторизацию
+      description: Перенаправление на клиентский эндпонит OAuth авторизации Берлоги в Таланте.
+      security: [BerlogaJWT: []]
+      tags: [application]
+      responses:
+        '302':
+          description: OK
+          headers:
+            Location:
+              required: true
+              schema:
+                type: string
+        default:
+          $ref: '#/components/responses/Error'
+  /talent-oauth/complete:
+    get:
+      operationId: TalentOAuthComplete
+      summary: Завершение авторизации в Таланте
+      description: Эндпоинт завершения авторизации Берлоги и перенаправление в приложение.
+      tags: [application]
+      responses:
+        '302':
+          description: OK
+          headers:
+            Location:
+              required: true
+              schema:
+                type: string
+        default:
+          $ref: '#/components/responses/Error'
+    parameters:
+      - in: query
+        name: code
+        required: true
+        schema:
+          type: string
+      - in: query
+        name: state
+        required: true
+        schema:
+          type: string
+          format: uuid
+  /user-token:
+    get:
+      operationId: UserTokenGet
+      summary: Чтение токена пользователя
+      description: Метод возвращает текущий токен пользователя.
+      security: [ServiceKey: []]
+      tags: [service]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+  /user-token/refresh:
+    post:
+      operationId: UserTokenRefresh
+      summary: Обновление токена пользователя
+      description: Операция обновляет текущий токен пользователя и возвращает его.
+      security: [ServiceKey: []]
+      tags: [service]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+        default:
+          $ref: '#/components/responses/Error'
+components:
+  schemas:
+    ApplicationID:
+      type: string
+      format: uuid
+      description: Идентификатор приложения.
+    PlayerID:
+      type: string
+      format: uuid
+      description: Идентификатор игрока.
+    PlayerSecret:
+      type: string
+      description: Секретный ключ игрока.
+    Application:
+      type: object
+      description: Приложение.
+      required:
+        - created_at
+        - updated_at
+        - is_public
+        - name
+        - icon_url
+        - package_name
+        - store_url
+        - launch_url
+        - intro
+      properties:
+        created_at:
+          type: string
+          format: date-time
+          description: Дата создания приложения.
+        updated_at:
+          type: string
+          format: date-time
+          description: Дата обновления приложения.
+        is_public:
+          type: boolean
+          description: Является ли приложене опубликованным.
+        name:
+          type: string
+          description: Название приложения.
+        icon_url:
+          type: string
+          description: URL иконки приложения.
+        package_name:
+          type: string
+          description: Идентификатор Android приложения.
+        store_url:
+          type: string
+          description: URL страницы для скачивания приложения.
+        launch_url:
+          type: string
+          description: DeepLink для запуска приложения.
+        intro:
+          type: string
+          description: Вступительное описание.
+  responses:
+    Error:
+      description: Ошибка обработки запроса
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - error_message
+            properties:
+              error_message:
+                type: string
+                description: Текстовое описание ошибки. В первую очередь предназначено для разработчиков. Но в случае отсуствия `verbose_message` в ответе, можно использовать и `error_message`.
+              verbose_message:
+                type: string
+                description: Человеко-понятное описание ошибки. Присуствует только в некоторых случаях.
+  parameters:
+    offset:
+      name: offset
+      in: query
+      schema:
+        type: integer
+        format: int32
+        default: 0
+        minumum: 0
+    limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        format: int32
+        default: 20
+        minumum: 1
+        maximum: 50
+  securitySchemes:
+    BerlogaJWT:
+      type: apiKey
+      name: Authorization
+      in: header
+      description: JWT, полученный эндпоинтом [issue-token](#operation/issueToken).
+    TalentOAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT, полученный [OAuth провайдером платформы Талант](/api/docs/).
+    ServiceKey:
+      type: apiKey
+      name: Authorization
+      in: header
