@@ -35,6 +35,7 @@ func GetUser(ctx context.Context) (User, error) {
 }
 
 func SetUser(ctx context.Context, user User) context.Context {
+	ctx = context.WithValue(ctx, ctxAuthType, AuthTalentOAuth)
 	return context.WithValue(ctx, ctxTalentOAuth, user)
 }
 

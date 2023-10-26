@@ -34,6 +34,7 @@ func GetPlayer(ctx context.Context) (Player, error) {
 
 // SetPlayer создает контекст с учетными данными игрока.
 func SetPlayer(ctx context.Context, player Player) context.Context {
+	ctx = context.WithValue(ctx, ctxAuthType, AuthBerlogaJWT)
 	return context.WithValue(ctx, ctxBerlogaJWT, player)
 }
 

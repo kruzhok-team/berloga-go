@@ -15,6 +15,7 @@ var (
 
 // SetServiceKey создает контекст авторизованный аутентификатором ServiceKey.
 func SetServiceKey(ctx context.Context) context.Context {
+	ctx = context.WithValue(ctx, ctxAuthType, AuthServiceKey)
 	return context.WithValue(ctx, ctxServiceKey, struct{}{})
 }
 
