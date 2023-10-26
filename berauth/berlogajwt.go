@@ -12,7 +12,7 @@ import (
 var (
 	ErrMissingBerlogaJWT = errors.New("отсутствуют учетные данные BerlogaJWT")
 
-	AuthBerlogaJWT authType = "BerlogaJWT"
+	AuthBerlogaJWT AuthType = "BerlogaJWT"
 
 	ctxBerlogaJWT ctxKey = "BerlogaJWT"
 )

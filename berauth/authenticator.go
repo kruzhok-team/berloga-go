@@ -15,9 +15,9 @@ type Authenticator interface {
 	Auth(ctx context.Context, credentials string) (context.Context, error)
 }
 
-type authType string
+type AuthType string
 
-var Unauthenticated authType = ""
+var Unauthenticated AuthType = ""
 
 var ctxAuthType ctxKey = "AuthType"
 
@@ -27,9 +27,9 @@ var ctxAuthType ctxKey = "AuthType"
 //	- AuthTalentOAuth
 //	- AuthBerlogaJWT
 //	- AuthServiceKey
-func AuthType(ctx context.Context) authType {
+func GetAuthType(ctx context.Context) AuthType {
 	if v := ctx.Value(ctxAuthType); v != nil {
-		return v.(authType)
+		return v.(AuthType)
 	}
 	return Unauthenticated
 }

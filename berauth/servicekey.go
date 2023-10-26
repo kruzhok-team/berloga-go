@@ -8,7 +8,7 @@ import (
 var (
 	ErrMissingServiceKey = errors.New("не установлен сервисный ключ")
 
-	AuthServiceKey authType = "ServiceKey"
+	AuthServiceKey AuthType = "ServiceKey"
 
 	ctxServiceKey ctxKey = "ServiceKey"
 )

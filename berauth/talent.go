@@ -14,7 +14,7 @@ import (
 var (
 	ErrMissingTalentOAuth = errors.New("отсутствуют учетные данные TalentOAuth")
 
-	AuthTalentOAuth authType = "TalentOAuth"
+	AuthTalentOAuth AuthType = "TalentOAuth"
 
 	ctxTalentOAuth ctxKey = "Talent"
 
