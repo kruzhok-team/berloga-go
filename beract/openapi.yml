@@ -1,0 +1,504 @@
+openapi: 3.1.0
+info:
+  title: Активности Берлоги
+  version: '0.2'
+  description: |-
+    Сервис активностей и артефактов игр Берлоги.
+
+    # Changelog
+
+    История изменений API начиная с версии `0.1`.
+
+    ### 0.2
+    [Для передачи активности](#operation/ActivitiesCreate) теперь обязательно нужно указывать версию приложения.
+  contact:
+    email: talent@kruzhok.org
+tags:
+  - name: application
+    description: Операции, предназначенные для приложений
+  - name: service
+    description: Операции, предназначенные для сервисов
+  - name: admin
+    description: Операции, предназначенные для администрирования
+servers:
+  - url: https://talent.kruzhok.org/berloga-activities
+    description: Production Server
+  - url: https://talent.test.kruzhok.org/berloga-activities
+    description: Development Server
+paths:
+  /activities:
+    get:
+      operationId: ActivitiesList
+      summary: Список активностей
+      description: Если какие-то из указанных активностей не будут найдены, то они просто будут отсутствовать в ответе.
+      security: [BerlogaJWT: []]
+      tags: [application]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Activity'
+      parameters:
+        - name: ids
+          in: query
+          description: Идентификаторы активностей
+          required: true
+          schema:
+            type: array
+            minItems: 1
+            maxItems: 50
+            items:
+              type: string
+              format: uuid
+    post:
+      operationId: ActivitiesCreate
+      summary: Запись активностей
+      description: |-
+        Каждая из активностей опционально может иметь метриики и артефакт.
+
+        Запись активностей доступа в коротком и расширенном форматах.
+
+        #### Короткий формат
+
+        Передается только массив активностей. Если они ссылаются на артефакты, эти артефакты должны быть предварительно [загружены](#operation/ArtefactsCreate). Ответ на такой запрос тоже включает в себя только массив с активностями.
+
+        #### Расширенный формат
+
+        В этом формате передается объект, который должен содержать активности в массиве, аналогичном короткому формату, и опционально может включать в себя еще артефакты для создания. В ответе на такой запрос, аналогично, возвращается объект, содержащий те же ключи. В возвращаемом массиве артефактов будут ссылки, по которым эти артефакты должны быть загружены.
+
+        > Ссылки имеют ограниченный срок жизни. Если данные артефакта не были загружены в рамках этого периода, то нужно [запросить новую ссылку](#operation/ArtefactUploadURL).
+
+        > До тех пор, пока указанные в активности артефакты не будут загружены, эта активность с ее баллами не будет учитываться в прогрессе традиции игрока.
+
+        После загрузки данных артефакта по полученной ссылке, нужно [подтвердить что загрузка завершена](#operation/ArtefactSetUploaded).
+      security: [BerlogaJWT: []]
+      tags: [application]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/ActivityWriteList'
+                - $ref: '#/components/schemas/ActivityWriteObject'
+      responses:
+        '201':
+          description: OK
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/ActivitiesCreateList'
+                  - $ref: '#/components/schemas/ActivitiesCreateObject'
+        '422':
+          description: Ошибка валидации данных в запросе
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /activities/scores:
+    get:
+      operationId: ActivitiesScores
+      summary: Балл за активности
+      description: |-
+        **Обязательно** указание либо `tradition_id`, либо `context_ids`; эти параметры взаимоисключающие.
+      security: [BerlogaJWT: [], ServiceKey: []]
+      tags: [application, service]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActivitiesScores'
+        '403':
+          description: Ошибка доступа
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Ошибка в параметрах запроса
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      parameters:
+        - name: tradition_id
+          in: query
+          description: Идентификатор традиции
+          schema:
+            type: integer
+            format: int32
+        - name: context_ids
+          in: query
+          description: Список идентификаторов контекстов
+          schema:
+            type: array
+            minItems: 1
+            maxItems: 50
+            items:
+              $ref: '#/components/schemas/ContextID'
+        - name: player_ids
+          in: query
+          description: Список игроков, активности которых попадут в выборку. Параметр доступен только при использовании авторизации `ServiceKey`.
+          schema:
+            type: array
+            minItems: 1
+            maxItems: 50
+            items:
+              $ref: '#/components/schemas/PlayerID'
+  /activities/scores/traditions:
+    get:
+      operationId: ActivitiesScoresByTraditions
+      summary: Баллы сгруппированные по традициям
+      security: [ServiceKey: []]
+      tags: [service]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - tradition_id
+                    - scores
+                  properties:
+                    tradition_id:
+                      type: integer
+                      format: int32
+                      description: ID традиции.
+                    scores:
+                      $ref: '#/components/schemas/ActivitiesScores'
+        '403':
+          description: Ошибка доступа
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      parameters:
+        - name: talent_id
+          in: query
+          required: true
+          description: Получение баллов по всем PlayerID пользователя
+          schema:
+            type: integer
+            format: int32
+  /artefacts:
+    post:
+      operationId: ArtefactsCreate
+      summary: Загрузка артефакта
+      description: Артефакт предварительно загружается для передачи его в активности.
+      security: [BerlogaJWT: []]
+      tags: [application]
+      requestBody:
+        description: Содержимое артефакта. На данный момент поддерживаются только Cyberiada-GraphML.
+        required: true
+        content:
+          application/*:
+            schema:
+              type: string
+              format: binary
+      responses:
+        '201':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: string
+                format: uuid
+                description: ID артефакта.
+        '422':
+          description: Не найден указанный тип артефакта
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      parameters:
+        - name: X-Artefact-Type
+          in: header
+          required: true
+          description: ID типа артефакта из [справочника](#operation/ArtefactTypesList).
+          schema:
+            type: integer
+            format: int32
+        - name: X-Checksum
+          in: header
+          required: true
+          description: SHA-1 контрольная сумма
+          schema:
+            type: string
+  /artefacts/{artefact_id}/upload-url:
+    get:
+      operationId: ArtefactUploadURL
+      summary: Запрос новой ссылки для загрузки
+      description: Ссылка для загрузки данных артефактом имеет ограниченный срок жизни. После его завершения, если данные артефакта еще не были успешно загружены, нужно запрашивать новую ссылку. Загрузку данных по ссылке нужно выполнять методом PUT.
+      security: [BerlogaJWT: []]
+      tags: [application]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: string
+                format: url
+        '404':
+          description: Артефакт не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Данные артефакта уже загружены
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    parameters:
+      - name: artefact_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/ArtefactID'
+  /artefacts/{artefact_id}/set-uploaded:
+    post:
+      operationId: ArtefactSetUploaded
+      summary: Подтверждение загрузки артефакта
+      security: [BerlogaJWT: []]
+      tags: [application]
+      responses:
+        '200':
+          description: OK
+        '404':
+          description: Артефакт не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Данные артефакта уже загружены
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    parameters:
+      - name: artefact_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/ArtefactID'
+  /artefact-types:
+    get:
+      operationId: ArtefactTypesList
+      summary: Справочник типов артефактов
+      tags: [application]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - id
+                    - name
+                  properties:
+                    id:
+                      type: integer
+                      format: int32
+                      description: Идентификатор типа артефактов.
+                    name:
+                      type: string
+                      description: Название типа артефактов.
+components:
+  schemas:
+    Activity:
+      type: object
+      description: Сохраненная игровая активность.
+      required:
+        - id
+        - created_at
+        - context_id
+        - player_id
+        - app_version
+        - scores
+        - artefact_id
+        - quarantine
+      properties:
+        id:
+          $ref: '#/components/schemas/ActivityID'
+        created_at:
+          type: string
+          format: date-time
+          description: Дата записи активности.
+        context_id:
+          $ref: '#/components/schemas/ContextID'
+        player_id:
+          $ref: '#/components/schemas/PlayerID'
+        app_version:
+          $ref: '#/components/schemas/ActivityAppVersion'
+        scores:
+          $ref: '#/components/schemas/ActivityScores'
+        artefact_id:
+          allOf:
+            - $ref: '#/components/schemas/ArtefactID'
+            - nullable: true
+        quarantine:
+          type: string
+          nullable: true
+          enum:
+            - missing_artefact
+            - invalid_artefact
+    ActivityID:
+      type: string
+      format: uuid
+      description: Идентификатор активности.
+    ActivityScores:
+      type: number
+      format: float64
+      nullable: true
+      description: Балл эффективности активности.
+    ActivityAppVersion:
+      type: string
+      description: Версия приложения, в которой была произведена активность.
+    ActivityWrite:
+      type: object
+      description: Записываемая игровая активность.
+      required:
+        - app_version
+        - context_id
+      properties:
+        app_version:
+          $ref: '#/components/schemas/ActivityAppVersion'
+        context_id:
+          $ref: '#/components/schemas/ContextID'
+        artefact_id:
+          $ref: '#/components/schemas/ArtefactID'
+        metrics:
+          type: object
+          minProperties: 1
+          maxProperties: 10
+          additionalProperties:
+            type: number
+            format: float64
+    ActivityWriteList:
+      type: array
+      minItems: 1
+      maxItems: 20
+      items:
+        $ref: '#/components/schemas/ActivityWrite'
+    ActivityWriteObject:
+      type: object
+      required:
+        - activities
+      properties:
+        activities:
+          $ref: '#/components/schemas/ActivityWriteList'
+        artefacts:
+          type: array
+          maxItems: 20
+          items:
+            type: object
+            required:
+              - id
+              - content_type
+              - artefact_type_id
+              - checksum
+            properties:
+              id:
+                type: string
+                format: uuid
+                description: ID артефакта, по которому на него ссылаются активности, переданные в том же запросе.
+              content_type:
+                type: string
+                description: MIME-тип артефакта.
+              artefact_type_id:
+                type: integer
+                format: int32
+                description: ID типа артефакта из [справочника](#operation/ArtefactTypesList).
+              checksum:
+                type: string
+                description: SHA-1 контрольная сумма
+    ActivitiesCreateList:
+      type: array
+      items:
+        type: object
+        required:
+          - id
+          - scores
+        properties:
+          id:
+            $ref: '#/components/schemas/ActivityID'
+          scores:
+            $ref: '#/components/schemas/ActivityScores'
+    ActivitiesCreateObject:
+      type: object
+      required:
+        - activities
+        - artefacts
+      properties:
+        activities:
+          $ref: '#/components/schemas/ActivitiesCreateList'
+        artefacts:
+          type: array
+          items:
+            type: object
+            required:
+              - id
+              - upload_url
+            properties:
+              id:
+                $ref: '#/components/schemas/ArtefactID'
+              upload_url:
+                type: string
+                format: url
+                description: Временный URL для загрузки данных артефакта методом PUT
+    ActivitiesScores:
+      type: number
+      format: float64
+      description: Балл эффективности.
+    ArtefactID:
+      type: string
+      format: uuid
+      description: Идентификатор артефакта.
+    ContextID:
+      type: string
+      format: uuid
+      description: Идентификатор контекста активности.
+    Error:
+      type: object
+      required:
+        - error_message
+      properties:
+        error_message:
+          type: string
+          description: Описание ошибки
+    PlayerID:
+      type: string
+      format: uuid
+      description: Идентификатор игрока.
+  securitySchemes:
+    BerlogaJWT:
+      type: apiKey
+      name: Authorization
+      in: header
+      description: JWT, полученный эндпоинтом [issue-token](/berloga-idp/docs/#operation/IssueToken).
+    TalentOAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT, полученный OAuth провайдером платформы Талант.
+    ServiceKey:
+      type: apiKey
+      name: X-Service-Key
+      in: header
