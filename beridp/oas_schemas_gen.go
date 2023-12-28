@@ -148,6 +148,15 @@ const (
 	ApplicationsListIsPublicAll   ApplicationsListIsPublic = "all"
 )
 
+// AllValues returns all ApplicationsListIsPublic values.
+func (ApplicationsListIsPublic) AllValues() []ApplicationsListIsPublic {
+	return []ApplicationsListIsPublic{
+		ApplicationsListIsPublicTrue,
+		ApplicationsListIsPublicFalse,
+		ApplicationsListIsPublicAll,
+	}
+}
+
 // MarshalText implements encoding.TextMarshaler.
 func (s ApplicationsListIsPublic) MarshalText() ([]byte, error) {
 	switch s {
@@ -213,6 +222,16 @@ const (
 	ApplicationsListOrderByUpdatedAtAsc  ApplicationsListOrderBy = "updated_at_asc"
 	ApplicationsListOrderByUpdatedAtDesc ApplicationsListOrderBy = "updated_at_desc"
 )
+
+// AllValues returns all ApplicationsListOrderBy values.
+func (ApplicationsListOrderBy) AllValues() []ApplicationsListOrderBy {
+	return []ApplicationsListOrderBy{
+		ApplicationsListOrderByCreatedAtAsc,
+		ApplicationsListOrderByCreatedAtDesc,
+		ApplicationsListOrderByUpdatedAtAsc,
+		ApplicationsListOrderByUpdatedAtDesc,
+	}
+}
 
 // MarshalText implements encoding.TextMarshaler.
 func (s ApplicationsListOrderBy) MarshalText() ([]byte, error) {

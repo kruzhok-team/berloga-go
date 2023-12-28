@@ -16,7 +16,7 @@ func encodeIssueTokenRequest(
 	r *http.Request,
 ) error {
 	const contentType = "application/json"
-	e := jx.GetEncoder()
+	e := new(jx.Encoder)
 	{
 		req.Encode(e)
 	}
@@ -30,7 +30,7 @@ func encodePlayersCreateRequest(
 	r *http.Request,
 ) error {
 	const contentType = "application/json"
-	e := jx.GetEncoder()
+	e := new(jx.Encoder)
 	{
 		req.Encode(e)
 	}
@@ -44,7 +44,7 @@ func encodePlayersMigrateRequest(
 	r *http.Request,
 ) error {
 	const contentType = "application/json"
-	e := jx.GetEncoder()
+	e := new(jx.Encoder)
 	{
 		req.Encode(e)
 	}

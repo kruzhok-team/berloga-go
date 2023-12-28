@@ -13,6 +13,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/metric"
+	semconv "go.opentelemetry.io/otel/semconv/v1.19.0"
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/ogen-go/ogen/conv"
@@ -21,6 +22,95 @@ import (
 	"github.com/ogen-go/ogen/otelogen"
 	"github.com/ogen-go/ogen/uri"
 )
+
+// Invoker invokes operations described by OpenAPI v3 specification.
+type Invoker interface {
+	// ApplicationsList invokes ApplicationsList operation.
+	//
+	// Список приложений.
+	// По-умолчанию сортируется по дате создания от новых к
+	// старым (`order_by=created_at_desc`) и включает в себя только
+	// опубликованные приложения (`is_public=true`).
+	//
+	// GET /applications
+	ApplicationsList(ctx context.Context, params ApplicationsListParams) (*ApplicationsListOKHeaders, error)
+	// IssueToken invokes IssueToken operation.
+	//
+	// Запрос аутентфикационного токена игрока.
+	// Токен имеет ограниченное непродолжительное время
+	// жизни.
+	//
+	// POST /issue-token
+	IssueToken(ctx context.Context, request *IssueTokenReq) (*IssueTokenCreated, error)
+	// PlayerGet invokes PlayerGet operation.
+	//
+	// Чтение информации об игроке.
+	// По-умолчанию ответ не содержит каких-либо данных. Для
+	// того чтобы добавить в ответ какие-то из параметров
+	// игрока, нужно указать их соотвествующими параметрами
+	// запроса `get_*`.
+	//
+	// GET /player/{player_id}
+	PlayerGet(ctx context.Context, params PlayerGetParams) (PlayerGetRes, error)
+	// PlayersCreate invokes PlayersCreate operation.
+	//
+	// Регистрация нового PlayerID.
+	//
+	// POST /players
+	PlayersCreate(ctx context.Context, request *PlayersCreateReq) (*PlayersCreateCreated, error)
+	// PlayersMigrate invokes PlayersMigrate operation.
+	//
+	// Миграция имеющихся данных о PlayerID под актуальное API
+	// сервисов Берлоги.
+	// В ответе возвращается PlayerSecret, который обязательно
+	// нужно сохранить на клиенте. Без него не получится
+	// пройти авторизацию клиентского API и они станут не
+	// доступны для этого PlayerID.
+	//
+	// POST /players/migrate
+	PlayersMigrate(ctx context.Context, request *PlayersMigrateReq) (*PlayersMigrateOK, error)
+	// TalentOAuthComplete invokes TalentOAuthComplete operation.
+	//
+	// Эндпоинт завершения авторизации Берлоги и
+	// перенаправление в приложение.
+	//
+	// GET /talent-oauth/complete
+	TalentOAuthComplete(ctx context.Context, params TalentOAuthCompleteParams) (*TalentOAuthCompleteFound, error)
+	// TalentOAuthConnect invokes TalentOAuthConnect operation.
+	//
+	// Перенаправление на клиентский эндпонит OAuth
+	// авторизации Берлоги в Таланте.
+	//
+	// GET /talent-oauth/connect
+	TalentOAuthConnect(ctx context.Context) (*TalentOAuthConnectFound, error)
+	// TalentOAuthDisconnect invokes TalentOAuthDisconnect operation.
+	//
+	// Если у игрока и так (уже) нет авторизованной учетной
+	// записи Таланта, то метод вернет `204` ответ так же как
+	// при успешном отсоединении оной.
+	//
+	// POST /talent-oauth/disconnect
+	TalentOAuthDisconnect(ctx context.Context) error
+	// TalentUserPlayers invokes TalentUserPlayers operation.
+	//
+	// Список PlayerID пользователя Таланта.
+	//
+	// GET /talent/{talent_id}/players
+	TalentUserPlayers(ctx context.Context, params TalentUserPlayersParams) ([]PlayerID, error)
+	// UserTokenGet invokes UserTokenGet operation.
+	//
+	// Метод возвращает текущий токен пользователя.
+	//
+	// GET /user-token
+	UserTokenGet(ctx context.Context) error
+	// UserTokenRefresh invokes UserTokenRefresh operation.
+	//
+	// Операция обновляет текущий токен пользователя и
+	// возвращает его.
+	//
+	// POST /user-token/refresh
+	UserTokenRefresh(ctx context.Context) error
+}
 
 // Client implements OAS client.
 type Client struct {
@@ -78,13 +168,14 @@ func (c *Client) requestURL(ctx context.Context) *url.URL {
 // GET /applications
 func (c *Client) ApplicationsList(ctx context.Context, params ApplicationsListParams) (*ApplicationsListOKHeaders, error) {
 	res, err := c.sendApplicationsList(ctx, params)
-	_ = res
 	return res, err
 }
 
 func (c *Client) sendApplicationsList(ctx context.Context, params ApplicationsListParams) (res *ApplicationsListOKHeaders, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("ApplicationsList"),
+		semconv.HTTPMethodKey.String("GET"),
+		semconv.HTTPRouteKey.String("/applications"),
 	}
 
 	// Run stopwatch.
@@ -223,13 +314,14 @@ func (c *Client) sendApplicationsList(ctx context.Context, params ApplicationsLi
 // POST /issue-token
 func (c *Client) IssueToken(ctx context.Context, request *IssueTokenReq) (*IssueTokenCreated, error) {
 	res, err := c.sendIssueToken(ctx, request)
-	_ = res
 	return res, err
 }
 
 func (c *Client) sendIssueToken(ctx context.Context, request *IssueTokenReq) (res *IssueTokenCreated, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("IssueToken"),
+		semconv.HTTPMethodKey.String("POST"),
+		semconv.HTTPRouteKey.String("/issue-token"),
 	}
 
 	// Run stopwatch.
@@ -301,13 +393,14 @@ func (c *Client) sendIssueToken(ctx context.Context, request *IssueTokenReq) (re
 // GET /player/{player_id}
 func (c *Client) PlayerGet(ctx context.Context, params PlayerGetParams) (PlayerGetRes, error) {
 	res, err := c.sendPlayerGet(ctx, params)
-	_ = res
 	return res, err
 }
 
 func (c *Client) sendPlayerGet(ctx context.Context, params PlayerGetParams) (res PlayerGetRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("PlayerGet"),
+		semconv.HTTPMethodKey.String("GET"),
+		semconv.HTTPRouteKey.String("/player/{player_id}"),
 	}
 
 	// Run stopwatch.
@@ -464,13 +557,14 @@ func (c *Client) sendPlayerGet(ctx context.Context, params PlayerGetParams) (res
 // POST /players
 func (c *Client) PlayersCreate(ctx context.Context, request *PlayersCreateReq) (*PlayersCreateCreated, error) {
 	res, err := c.sendPlayersCreate(ctx, request)
-	_ = res
 	return res, err
 }
 
 func (c *Client) sendPlayersCreate(ctx context.Context, request *PlayersCreateReq) (res *PlayersCreateCreated, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("PlayersCreate"),
+		semconv.HTTPMethodKey.String("POST"),
+		semconv.HTTPRouteKey.String("/players"),
 	}
 
 	// Run stopwatch.
@@ -543,13 +637,14 @@ func (c *Client) sendPlayersCreate(ctx context.Context, request *PlayersCreateRe
 // POST /players/migrate
 func (c *Client) PlayersMigrate(ctx context.Context, request *PlayersMigrateReq) (*PlayersMigrateOK, error) {
 	res, err := c.sendPlayersMigrate(ctx, request)
-	_ = res
 	return res, err
 }
 
 func (c *Client) sendPlayersMigrate(ctx context.Context, request *PlayersMigrateReq) (res *PlayersMigrateOK, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("PlayersMigrate"),
+		semconv.HTTPMethodKey.String("POST"),
+		semconv.HTTPRouteKey.String("/players/migrate"),
 	}
 
 	// Run stopwatch.
@@ -618,13 +713,14 @@ func (c *Client) sendPlayersMigrate(ctx context.Context, request *PlayersMigrate
 // GET /talent-oauth/complete
 func (c *Client) TalentOAuthComplete(ctx context.Context, params TalentOAuthCompleteParams) (*TalentOAuthCompleteFound, error) {
 	res, err := c.sendTalentOAuthComplete(ctx, params)
-	_ = res
 	return res, err
 }
 
 func (c *Client) sendTalentOAuthComplete(ctx context.Context, params TalentOAuthCompleteParams) (res *TalentOAuthCompleteFound, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("TalentOAuthComplete"),
+		semconv.HTTPMethodKey.String("GET"),
+		semconv.HTTPRouteKey.String("/talent-oauth/complete"),
 	}
 
 	// Run stopwatch.
@@ -722,13 +818,14 @@ func (c *Client) sendTalentOAuthComplete(ctx context.Context, params TalentOAuth
 // GET /talent-oauth/connect
 func (c *Client) TalentOAuthConnect(ctx context.Context) (*TalentOAuthConnectFound, error) {
 	res, err := c.sendTalentOAuthConnect(ctx)
-	_ = res
 	return res, err
 }
 
 func (c *Client) sendTalentOAuthConnect(ctx context.Context) (res *TalentOAuthConnectFound, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("TalentOAuthConnect"),
+		semconv.HTTPMethodKey.String("GET"),
+		semconv.HTTPRouteKey.String("/talent-oauth/connect"),
 	}
 
 	// Run stopwatch.
@@ -827,14 +924,15 @@ func (c *Client) sendTalentOAuthConnect(ctx context.Context) (res *TalentOAuthCo
 //
 // POST /talent-oauth/disconnect
 func (c *Client) TalentOAuthDisconnect(ctx context.Context) error {
-	res, err := c.sendTalentOAuthDisconnect(ctx)
-	_ = res
+	_, err := c.sendTalentOAuthDisconnect(ctx)
 	return err
 }
 
 func (c *Client) sendTalentOAuthDisconnect(ctx context.Context) (res *TalentOAuthDisconnectNoContent, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("TalentOAuthDisconnect"),
+		semconv.HTTPMethodKey.String("POST"),
+		semconv.HTTPRouteKey.String("/talent-oauth/disconnect"),
 	}
 
 	// Run stopwatch.
@@ -932,13 +1030,14 @@ func (c *Client) sendTalentOAuthDisconnect(ctx context.Context) (res *TalentOAut
 // GET /talent/{talent_id}/players
 func (c *Client) TalentUserPlayers(ctx context.Context, params TalentUserPlayersParams) ([]PlayerID, error) {
 	res, err := c.sendTalentUserPlayers(ctx, params)
-	_ = res
 	return res, err
 }
 
 func (c *Client) sendTalentUserPlayers(ctx context.Context, params TalentUserPlayersParams) (res []PlayerID, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("TalentUserPlayers"),
+		semconv.HTTPMethodKey.String("GET"),
+		semconv.HTTPRouteKey.String("/talent/{talent_id}/players"),
 	}
 
 	// Run stopwatch.
@@ -1054,14 +1153,15 @@ func (c *Client) sendTalentUserPlayers(ctx context.Context, params TalentUserPla
 //
 // GET /user-token
 func (c *Client) UserTokenGet(ctx context.Context) error {
-	res, err := c.sendUserTokenGet(ctx)
-	_ = res
+	_, err := c.sendUserTokenGet(ctx)
 	return err
 }
 
 func (c *Client) sendUserTokenGet(ctx context.Context) (res *UserTokenGetOK, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("UserTokenGet"),
+		semconv.HTTPMethodKey.String("GET"),
+		semconv.HTTPRouteKey.String("/user-token"),
 	}
 
 	// Run stopwatch.
@@ -1159,14 +1259,15 @@ func (c *Client) sendUserTokenGet(ctx context.Context) (res *UserTokenGetOK, err
 //
 // POST /user-token/refresh
 func (c *Client) UserTokenRefresh(ctx context.Context) error {
-	res, err := c.sendUserTokenRefresh(ctx)
-	_ = res
+	_, err := c.sendUserTokenRefresh(ctx)
 	return err
 }
 
 func (c *Client) sendUserTokenRefresh(ctx context.Context) (res *UserTokenRefreshOK, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("UserTokenRefresh"),
+		semconv.HTTPMethodKey.String("POST"),
+		semconv.HTTPRouteKey.String("/user-token/refresh"),
 	}
 
 	// Run stopwatch.
