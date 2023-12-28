@@ -3,27 +3,31 @@ package idpsec
 import (
 	"context"
 
-	"github.com/ogen-go/ogen/ogenerrors"
-
-	"github.com/kruzhok-team/berloga-go/berauth"
 	"github.com/kruzhok-team/berloga-go/beridp"
+	"github.com/kruzhok-team/berloga-go/secsrc"
 )
 
 // Аутентификатор реализующий только схему BerlogaJWT.
-type BerlogaJWT struct{}
+type BerlogaJWT struct{
+	secsrc.BerlogaJWTSrc
+}
 
 // BerlogaJWT implements beridp.SecuritySource
 func (s *BerlogaJWT) BerlogaJWT(ctx context.Context, operationName string) (beridp.BerlogaJWT, error) {
-	player, err := berauth.GetPlayer(ctx)
+	tok, err := s.GetBerlogaJWT(ctx, operationName)
 	if err != nil {
 		return beridp.BerlogaJWT{}, err
 	}
-	return beridp.BerlogaJWT{APIKey: player.Token}, nil
+	return beridp.BerlogaJWT{APIKey: tok}, nil
 }
 
 // ServiceKey implements beridp.SecuritySource
 func (s *BerlogaJWT) ServiceKey(ctx context.Context, operationName string) (beridp.ServiceKey, error) {
-	return beridp.ServiceKey{}, ogenerrors.ErrSkipClientSecurity
+	tok, err := s.GetServiceKey(ctx, operationName)
+	if err != nil {
+		return beridp.ServiceKey{}, err
+	}
+	return beridp.ServiceKey{APIKey: tok}, nil
 }
 
 var _ beridp.SecuritySource = (*BerlogaJWT)(nil)

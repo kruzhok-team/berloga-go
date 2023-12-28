@@ -3,24 +3,31 @@ package idpsec
 import (
 	"context"
 
-	"github.com/ogen-go/ogen/ogenerrors"
-
 	"github.com/kruzhok-team/berloga-go/beridp"
+	"github.com/kruzhok-team/berloga-go/secsrc"
 )
 
 // Аутентификатор реализующий только схему ServiceKey.
 type ServiceKey struct {
-	SvcKey string
+	secsrc.BerlogaJWTSrc
 }
 
 // BerlogaJWT implements beridp.SecuritySource
 func (s *ServiceKey) BerlogaJWT(ctx context.Context, operationName string) (beridp.BerlogaJWT, error) {
-	return beridp.BerlogaJWT{}, ogenerrors.ErrSkipClientSecurity
+	tok, err := s.GetBerlogaJWT(ctx, operationName)
+	if err != nil {
+		return beridp.BerlogaJWT{}, err
+	}
+	return beridp.BerlogaJWT{APIKey: tok}, nil
 }
 
 // ServiceKey implements beridp.SecuritySource
 func (s *ServiceKey) ServiceKey(ctx context.Context, operationName string) (beridp.ServiceKey, error) {
-	return beridp.ServiceKey{APIKey: s.SvcKey}, nil
+	tok, err := s.GetServiceKey(ctx, operationName)
+	if err != nil {
+		return beridp.ServiceKey{}, err
+	}
+	return beridp.ServiceKey{APIKey: tok}, nil
 }
 
 var _ beridp.SecuritySource = (*ServiceKey)(nil)
