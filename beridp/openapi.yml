@@ -466,5 +466,5 @@ components:
       description: JWT, полученный [OAuth провайдером платформы Талант](/api/docs/).
     ServiceKey:
       type: apiKey
-      name: Authorization
+      name: X-Service-Key
       in: header
