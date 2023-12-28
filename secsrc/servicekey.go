@@ -7,14 +7,14 @@ import (
 )
 
 // Аутентификатор реализующий только схему ServiceKey.
-type ServiceKey struct {
+type ServiceKeySrc struct {
 	SvcKey string
 }
 
-func (s *ServiceKey) GetBerlogaJWT(ctx context.Context, operationName string) (string, error) {
+func (s *ServiceKeySrc) GetBerlogaJWT(ctx context.Context, operationName string) (string, error) {
 	return "", ogenerrors.ErrSkipClientSecurity
 }
 
-func (s *ServiceKey) GetServiceKey(ctx context.Context, operationName string) (string, error) {
+func (s *ServiceKeySrc) GetServiceKey(ctx context.Context, operationName string) (string, error) {
 	return s.SvcKey, nil
 }

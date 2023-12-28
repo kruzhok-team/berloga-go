@@ -9,7 +9,7 @@ import (
 
 // Аутентификатор реализующий только схему ServiceKey.
 type ServiceKey struct {
-	secsrc.BerlogaJWTSrc
+	secsrc.ServiceKeySrc
 }
 
 // BerlogaJWT implements beract.SecuritySource

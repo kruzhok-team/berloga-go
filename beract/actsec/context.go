@@ -9,7 +9,7 @@ import (
 
 // Аутентификатор использующий учетные данные из контекста.
 type FromContext struct{
-	secsrc.BerlogaJWTSrc
+	secsrc.FromContext
 }
 
 // BerlogaJWT implements beract.SecuritySource.
