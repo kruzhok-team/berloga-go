@@ -13,10 +13,18 @@ var (
 	ctxServiceKey ctxKey = "ServiceKey"
 )
 
+// GetServiceKey возвращает сервисный ключ из контекста или ошибку ErrMissingServiceKey.
+func GetServiceKey(ctx context.Context) (string, error) {
+	if raw := ctx.Value(ctxServiceKey); raw != nil {
+		return raw.(string), nil
+	}
+	return "", ErrMissingServiceKey
+}
+
 // SetServiceKey создает контекст авторизованный аутентификатором ServiceKey.
-func SetServiceKey(ctx context.Context) context.Context {
+func SetServiceKey(ctx context.Context, key string) context.Context {
 	ctx = context.WithValue(ctx, ctxAuthType, AuthServiceKey)
-	return context.WithValue(ctx, ctxServiceKey, struct{}{})
+	return context.WithValue(ctx, ctxServiceKey, key)
 }
 
 // HasServiceKey сообщает имеется ли успешная аутентификация сервисным ключом в контексте.
@@ -44,5 +52,5 @@ func (s *serviceKey) Auth(ctx context.Context, credentials string) (context.Cont
 	if credentials != s.key {
 		return ctx, ErrUnauthorized
 	}
-	return SetServiceKey(ctx), nil
+	return SetServiceKey(ctx, credentials), nil
 }

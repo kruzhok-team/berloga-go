@@ -9,7 +9,7 @@ func TestHasSetServiceKey(t *testing.T) {
 	if HasServiceKey(context.Background()) {
 		t.Errorf("HasServiceKey() вернула true вместо false")
 	}
-	if !HasServiceKey(SetServiceKey(context.Background())) {
+	if !HasServiceKey(SetServiceKey(context.Background(), "key")) {
 		t.Errorf("HasServiceKey() вернула false вместо true")
 	}
 }
