@@ -9,25 +9,19 @@ import (
 
 // Аутентификатор реализующий только схему ServiceKey.
 type ServiceKey struct {
-	secsrc.ServiceKeySrc
+	secsrc.SvcKey
 }
 
 // BerlogaJWT implements beract.SecuritySource
 func (s *ServiceKey) BerlogaJWT(ctx context.Context, operationName string) (beract.BerlogaJWT, error) {
 	tok, err := s.GetBerlogaJWT(ctx, operationName)
-	if err != nil {
-		return beract.BerlogaJWT{}, err
-	}
-	return beract.BerlogaJWT{APIKey: tok}, nil
+	return beract.BerlogaJWT{APIKey: tok}, err
 }
 
 // ServiceKey implements beract.SecuritySource
 func (s *ServiceKey) ServiceKey(ctx context.Context, operationName string) (beract.ServiceKey, error) {
 	tok, err := s.GetServiceKey(ctx, operationName)
-	if err != nil {
-		return beract.ServiceKey{}, err
-	}
-	return beract.ServiceKey{APIKey: tok}, nil
+	return beract.ServiceKey{APIKey: tok}, err
 }
 
 var _ beract.SecuritySource = (*ServiceKey)(nil)

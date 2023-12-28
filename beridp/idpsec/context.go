@@ -15,19 +15,13 @@ type FromContext struct{
 // BerlogaJWT implements beridp.SecuritySource.
 func (s *FromContext) BerlogaJWT(ctx context.Context, operationName string) (beridp.BerlogaJWT, error) {
 	tok, err := s.GetBerlogaJWT(ctx, operationName)
-	if err != nil {
-		return beridp.BerlogaJWT{}, err
-	}
-	return beridp.BerlogaJWT{APIKey: tok}, nil
+	return beridp.BerlogaJWT{APIKey: tok}, err
 }
 
 // ServiceKey implements beridp.SecuritySource.
 func (s *FromContext) ServiceKey(ctx context.Context, operationName string) (beridp.ServiceKey, error) {
 	tok, err := s.GetServiceKey(ctx, operationName)
-	if err != nil {
-		return beridp.ServiceKey{}, err
-	}
-	return beridp.ServiceKey{APIKey: tok}, nil
+	return beridp.ServiceKey{APIKey: tok}, err
 }
 
 var _ beridp.SecuritySource = (*FromContext)(nil)
