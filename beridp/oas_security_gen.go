@@ -31,6 +31,6 @@ func (s *Client) securityServiceKey(ctx context.Context, operationName string, r
 	if err != nil {
 		return errors.Wrap(err, "security source \"ServiceKey\"")
 	}
-	req.Header.Set("Authorization", t.APIKey)
+	req.Header.Set("X-Service-Key", t.APIKey)
 	return nil
 }
