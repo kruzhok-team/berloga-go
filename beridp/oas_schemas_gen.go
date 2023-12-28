@@ -17,6 +17,7 @@ func (s *ErrorStatusCode) Error() string {
 // Приложение.
 // Ref: #/components/schemas/Application
 type Application struct {
+	ID ApplicationID `json:"id"`
 	// Дата создания приложения.
 	CreatedAt time.Time `json:"created_at"`
 	// Дата обновления приложения.
@@ -35,6 +36,11 @@ type Application struct {
 	LaunchURL string `json:"launch_url"`
 	// Вступительное описание.
 	Intro string `json:"intro"`
+}
+
+// GetID returns the value of ID.
+func (s *Application) GetID() ApplicationID {
+	return s.ID
 }
 
 // GetCreatedAt returns the value of CreatedAt.
@@ -80,6 +86,11 @@ func (s *Application) GetLaunchURL() string {
 // GetIntro returns the value of Intro.
 func (s *Application) GetIntro() string {
 	return s.Intro
+}
+
+// SetID sets the value of ID.
+func (s *Application) SetID(val ApplicationID) {
+	s.ID = val
 }
 
 // SetCreatedAt sets the value of CreatedAt.
@@ -836,6 +847,9 @@ func (s *TalentOAuthConnectFound) GetLocation() string {
 func (s *TalentOAuthConnectFound) SetLocation(val string) {
 	s.Location = val
 }
+
+// TalentOAuthDisconnectNoContent is response for TalentOAuthDisconnect operation.
+type TalentOAuthDisconnectNoContent struct{}
 
 type UserTokenGetOK struct{}
 

@@ -24,6 +24,10 @@ func (s *Application) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *Application) encodeFields(e *jx.Encoder) {
 	{
+		e.FieldStart("id")
+		s.ID.Encode(e)
+	}
+	{
 		e.FieldStart("created_at")
 		json.EncodeDateTime(e, s.CreatedAt)
 	}
@@ -61,16 +65,17 @@ func (s *Application) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfApplication = [9]string{
-	0: "created_at",
-	1: "updated_at",
-	2: "is_public",
-	3: "name",
-	4: "icon_url",
-	5: "package_name",
-	6: "store_url",
-	7: "launch_url",
-	8: "intro",
+var jsonFieldsNameOfApplication = [10]string{
+	0: "id",
+	1: "created_at",
+	2: "updated_at",
+	3: "is_public",
+	4: "name",
+	5: "icon_url",
+	6: "package_name",
+	7: "store_url",
+	8: "launch_url",
+	9: "intro",
 }
 
 // Decode decodes Application from json.
@@ -82,8 +87,18 @@ func (s *Application) Decode(d *jx.Decoder) error {
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
-		case "created_at":
+		case "id":
 			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.ID.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"id\"")
+			}
+		case "created_at":
+			requiredBitSet[0] |= 1 << 1
 			if err := func() error {
 				v, err := json.DecodeDateTime(d)
 				s.CreatedAt = v
@@ -95,7 +110,7 @@ func (s *Application) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"created_at\"")
 			}
 		case "updated_at":
-			requiredBitSet[0] |= 1 << 1
+			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
 				v, err := json.DecodeDateTime(d)
 				s.UpdatedAt = v
@@ -107,7 +122,7 @@ func (s *Application) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"updated_at\"")
 			}
 		case "is_public":
-			requiredBitSet[0] |= 1 << 2
+			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
 				v, err := d.Bool()
 				s.IsPublic = bool(v)
@@ -119,7 +134,7 @@ func (s *Application) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"is_public\"")
 			}
 		case "name":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Str()
 				s.Name = string(v)
@@ -131,7 +146,7 @@ func (s *Application) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"name\"")
 			}
 		case "icon_url":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.IconURL = string(v)
@@ -143,7 +158,7 @@ func (s *Application) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"icon_url\"")
 			}
 		case "package_name":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := d.Str()
 				s.PackageName = string(v)
@@ -155,7 +170,7 @@ func (s *Application) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"package_name\"")
 			}
 		case "store_url":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				v, err := d.Str()
 				s.StoreURL = string(v)
@@ -167,7 +182,7 @@ func (s *Application) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"store_url\"")
 			}
 		case "launch_url":
-			requiredBitSet[0] |= 1 << 7
+			requiredBitSet[1] |= 1 << 0
 			if err := func() error {
 				v, err := d.Str()
 				s.LaunchURL = string(v)
@@ -179,7 +194,7 @@ func (s *Application) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"launch_url\"")
 			}
 		case "intro":
-			requiredBitSet[1] |= 1 << 0
+			requiredBitSet[1] |= 1 << 1
 			if err := func() error {
 				v, err := d.Str()
 				s.Intro = string(v)
@@ -201,7 +216,7 @@ func (s *Application) Decode(d *jx.Decoder) error {
 	var failures []validate.FieldError
 	for i, mask := range [2]uint8{
 		0b11111111,
-		0b00000001,
+		0b00000011,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.

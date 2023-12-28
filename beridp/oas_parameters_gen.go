@@ -34,3 +34,9 @@ type TalentOAuthCompleteParams struct {
 	Code  string
 	State uuid.UUID
 }
+
+// TalentUserPlayersParams is parameters of TalentUserPlayers operation.
+type TalentUserPlayersParams struct {
+	// ID пользователя Таланта.
+	TalentID int32
+}

@@ -127,7 +127,7 @@ paths:
         Чтение информации об игроке.
 
         По-умолчанию ответ не содержит каких-либо данных. Для того чтобы добавить в ответ какие-то из параметров игрока, нужно указать их соотвествующими параметрами запроса `get_*`.
-      security: [BerlogaJWT: [], ServiceKey: []]
+      security: [BerlogaJWT: []]
       tags: [application, service]
       responses:
         '200':
@@ -246,6 +246,31 @@ paths:
                     $ref: '#/components/schemas/PlayerSecret'
         default:
           $ref: '#/components/responses/Error'
+  /talent/{talent_id}/players:
+    get:
+      operationId: TalentUserPlayers
+      summary: Список PlayerID пользователя Таланта
+      security: [ServiceKey: []]
+      tags: [service]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlayerID'
+        default:
+          $ref: '#/components/responses/Error'
+    parameters:
+      - name: talent_id
+        in: path
+        description: ID пользователя Таланта
+        required: true
+        schema:
+          type: integer
+          format: int32
   /talent-oauth/connect:
     get:
       operationId: TalentOAuthConnect
@@ -261,6 +286,18 @@ paths:
               required: true
               schema:
                 type: string
+        default:
+          $ref: '#/components/responses/Error'
+  /talent-oauth/disconnect:
+    post:
+      operationId: TalentOAuthDisconnect
+      summary: Отсоединение учетной записи Таланта
+      description: Если у игрока и так (уже) нет авторизованной учетной записи Таланта, то метод вернет `204` ответ так же как при успешном отсоединении оной.
+      security: [BerlogaJWT: []]
+      tags: [application]
+      responses:
+        '204':
+          description: OK
         default:
           $ref: '#/components/responses/Error'
   /talent-oauth/complete:
@@ -340,6 +377,7 @@ components:
       type: object
       description: Приложение.
       required:
+        - id
         - created_at
         - updated_at
         - is_public
@@ -350,6 +388,8 @@ components:
         - launch_url
         - intro
       properties:
+        id:
+          $ref: '#/components/schemas/ApplicationID'
         created_at:
           type: string
           format: date-time
