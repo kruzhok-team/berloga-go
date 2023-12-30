@@ -7,6 +7,10 @@ import (
 	"github.com/kruzhok-team/berloga-go/secsrc"
 )
 
+func New(src secsrc.SecuritySource) *SecuritySource {
+	return &SecuritySource{Src: src}
+}
+
 // Реализация beract.SecuritySource являющаяся враппером для secsrc.SecuritySource.
 type SecuritySource struct {
 	Src secsrc.SecuritySource
