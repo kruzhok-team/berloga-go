@@ -13,6 +13,10 @@ type ActivitiesScoresRes interface {
 	activitiesScoresRes()
 }
 
+type ActivityReadRes interface {
+	activityReadRes()
+}
+
 type ArtefactSetUploadedRes interface {
 	artefactSetUploadedRes()
 }
@@ -23,4 +27,8 @@ type ArtefactUploadURLRes interface {
 
 type ArtefactsCreateRes interface {
 	artefactsCreateRes()
+}
+
+type ContextTraditionIDRes interface {
+	contextTraditionIDRes()
 }

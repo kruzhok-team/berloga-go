@@ -29,6 +29,12 @@ type PlayerGetParams struct {
 	GetPlayerIds OptBool
 }
 
+// TalentOAuthAuthorizeParams is parameters of TalentOAuthAuthorize operation.
+type TalentOAuthAuthorizeParams struct {
+	// TalentOAuth access_token.
+	XToken string
+}
+
 // TalentOAuthCompleteParams is parameters of TalentOAuthComplete operation.
 type TalentOAuthCompleteParams struct {
 	Code  string
@@ -37,6 +43,12 @@ type TalentOAuthCompleteParams struct {
 
 // TalentUserPlayersParams is parameters of TalentUserPlayers operation.
 type TalentUserPlayersParams struct {
+	// ID пользователя Таланта.
+	TalentID int32
+}
+
+// TalentUserTokenGetParams is parameters of TalentUserTokenGet operation.
+type TalentUserTokenGetParams struct {
 	// ID пользователя Таланта.
 	TalentID int32
 }

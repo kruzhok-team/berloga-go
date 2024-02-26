@@ -69,6 +69,12 @@ type Invoker interface {
 	//
 	// POST /players/migrate
 	PlayersMigrate(ctx context.Context, request *PlayersMigrateReq) (*PlayersMigrateOK, error)
+	// TalentOAuthAuthorize invokes TalentOAuthAuthorize operation.
+	//
+	// Авторизация существующим токеном.
+	//
+	// POST /talent-oauth/authorize
+	TalentOAuthAuthorize(ctx context.Context, params TalentOAuthAuthorizeParams) error
 	// TalentOAuthComplete invokes TalentOAuthComplete operation.
 	//
 	// Эндпоинт завершения авторизации Берлоги и
@@ -97,19 +103,12 @@ type Invoker interface {
 	//
 	// GET /talent/{talent_id}/players
 	TalentUserPlayers(ctx context.Context, params TalentUserPlayersParams) ([]PlayerID, error)
-	// UserTokenGet invokes UserTokenGet operation.
+	// TalentUserTokenGet invokes TalentUserTokenGet operation.
 	//
-	// Метод возвращает текущий токен пользователя.
+	// TalentOAuth токен пользователя.
 	//
-	// GET /user-token
-	UserTokenGet(ctx context.Context) error
-	// UserTokenRefresh invokes UserTokenRefresh operation.
-	//
-	// Операция обновляет текущий токен пользователя и
-	// возвращает его.
-	//
-	// POST /user-token/refresh
-	UserTokenRefresh(ctx context.Context) error
+	// GET /talent/{talent_id}/token
+	TalentUserTokenGet(ctx context.Context, params TalentUserTokenGetParams) (string, error)
 }
 
 // Client implements OAS client.
@@ -705,6 +704,125 @@ func (c *Client) sendPlayersMigrate(ctx context.Context, request *PlayersMigrate
 	return result, nil
 }
 
+// TalentOAuthAuthorize invokes TalentOAuthAuthorize operation.
+//
+// Авторизация существующим токеном.
+//
+// POST /talent-oauth/authorize
+func (c *Client) TalentOAuthAuthorize(ctx context.Context, params TalentOAuthAuthorizeParams) error {
+	_, err := c.sendTalentOAuthAuthorize(ctx, params)
+	return err
+}
+
+func (c *Client) sendTalentOAuthAuthorize(ctx context.Context, params TalentOAuthAuthorizeParams) (res *TalentOAuthAuthorizeOK, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("TalentOAuthAuthorize"),
+		semconv.HTTPMethodKey.String("POST"),
+		semconv.HTTPRouteKey.String("/talent-oauth/authorize"),
+	}
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(float64(elapsedDuration)/float64(time.Millisecond)), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, "TalentOAuthAuthorize",
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/talent-oauth/authorize"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "POST", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	stage = "EncodeHeaderParams"
+	h := uri.NewHeaderEncoder(r.Header)
+	{
+		cfg := uri.HeaderParameterEncodingConfig{
+			Name:    "X-Token",
+			Explode: false,
+		}
+		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+			return e.EncodeValue(conv.StringToString(params.XToken))
+		}); err != nil {
+			return res, errors.Wrap(err, "encode header")
+		}
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:BerlogaJWT"
+			switch err := c.securityBerlogaJWT(ctx, "TalentOAuthAuthorize", r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BerlogaJWT\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	defer resp.Body.Close()
+
+	stage = "DecodeResponse"
+	result, err := decodeTalentOAuthAuthorizeResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
 // TalentOAuthComplete invokes TalentOAuthComplete operation.
 //
 // Эндпоинт завершения авторизации Берлоги и
@@ -1112,11 +1230,23 @@ func (c *Client) sendTalentUserPlayers(ctx context.Context, params TalentUserPla
 				return res, errors.Wrap(err, "security \"ServiceKey\"")
 			}
 		}
+		{
+			stage = "Security:TalentOAuth"
+			switch err := c.securityTalentOAuth(ctx, "TalentUserPlayers", r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"TalentOAuth\"")
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -1147,21 +1277,21 @@ func (c *Client) sendTalentUserPlayers(ctx context.Context, params TalentUserPla
 	return result, nil
 }
 
-// UserTokenGet invokes UserTokenGet operation.
+// TalentUserTokenGet invokes TalentUserTokenGet operation.
 //
-// Метод возвращает текущий токен пользователя.
+// TalentOAuth токен пользователя.
 //
-// GET /user-token
-func (c *Client) UserTokenGet(ctx context.Context) error {
-	_, err := c.sendUserTokenGet(ctx)
-	return err
+// GET /talent/{talent_id}/token
+func (c *Client) TalentUserTokenGet(ctx context.Context, params TalentUserTokenGetParams) (string, error) {
+	res, err := c.sendTalentUserTokenGet(ctx, params)
+	return res, err
 }
 
-func (c *Client) sendUserTokenGet(ctx context.Context) (res *UserTokenGetOK, err error) {
+func (c *Client) sendTalentUserTokenGet(ctx context.Context, params TalentUserTokenGetParams) (res string, err error) {
 	otelAttrs := []attribute.KeyValue{
-		otelogen.OperationID("UserTokenGet"),
+		otelogen.OperationID("TalentUserTokenGet"),
 		semconv.HTTPMethodKey.String("GET"),
-		semconv.HTTPRouteKey.String("/user-token"),
+		semconv.HTTPRouteKey.String("/talent/{talent_id}/token"),
 	}
 
 	// Run stopwatch.
@@ -1176,7 +1306,7 @@ func (c *Client) sendUserTokenGet(ctx context.Context) (res *UserTokenGetOK, err
 	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
 
 	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, "UserTokenGet",
+	ctx, span := c.cfg.Tracer.Start(ctx, "TalentUserTokenGet",
 		trace.WithAttributes(otelAttrs...),
 		clientSpanKind,
 	)
@@ -1193,8 +1323,27 @@ func (c *Client) sendUserTokenGet(ctx context.Context) (res *UserTokenGetOK, err
 
 	stage = "BuildURL"
 	u := uri.Clone(c.requestURL(ctx))
-	var pathParts [1]string
-	pathParts[0] = "/user-token"
+	var pathParts [3]string
+	pathParts[0] = "/talent/"
+	{
+		// Encode "talent_id" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "talent_id",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.Int32ToString(params.TalentID))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[1] = encoded
+	}
+	pathParts[2] = "/token"
 	uri.AddPathParts(u, pathParts[:]...)
 
 	stage = "EncodeRequest"
@@ -1208,7 +1357,7 @@ func (c *Client) sendUserTokenGet(ctx context.Context) (res *UserTokenGetOK, err
 		var satisfied bitset
 		{
 			stage = "Security:ServiceKey"
-			switch err := c.securityServiceKey(ctx, "UserTokenGet", r); {
+			switch err := c.securityServiceKey(ctx, "TalentUserTokenGet", r); {
 			case err == nil: // if NO error
 				satisfied[0] |= 1 << 0
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
@@ -1244,113 +1393,7 @@ func (c *Client) sendUserTokenGet(ctx context.Context) (res *UserTokenGetOK, err
 	defer resp.Body.Close()
 
 	stage = "DecodeResponse"
-	result, err := decodeUserTokenGetResponse(resp)
-	if err != nil {
-		return res, errors.Wrap(err, "decode response")
-	}
-
-	return result, nil
-}
-
-// UserTokenRefresh invokes UserTokenRefresh operation.
-//
-// Операция обновляет текущий токен пользователя и
-// возвращает его.
-//
-// POST /user-token/refresh
-func (c *Client) UserTokenRefresh(ctx context.Context) error {
-	_, err := c.sendUserTokenRefresh(ctx)
-	return err
-}
-
-func (c *Client) sendUserTokenRefresh(ctx context.Context) (res *UserTokenRefreshOK, err error) {
-	otelAttrs := []attribute.KeyValue{
-		otelogen.OperationID("UserTokenRefresh"),
-		semconv.HTTPMethodKey.String("POST"),
-		semconv.HTTPRouteKey.String("/user-token/refresh"),
-	}
-
-	// Run stopwatch.
-	startTime := time.Now()
-	defer func() {
-		// Use floating point division here for higher precision (instead of Millisecond method).
-		elapsedDuration := time.Since(startTime)
-		c.duration.Record(ctx, float64(float64(elapsedDuration)/float64(time.Millisecond)), metric.WithAttributes(otelAttrs...))
-	}()
-
-	// Increment request counter.
-	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
-
-	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, "UserTokenRefresh",
-		trace.WithAttributes(otelAttrs...),
-		clientSpanKind,
-	)
-	// Track stage for error reporting.
-	var stage string
-	defer func() {
-		if err != nil {
-			span.RecordError(err)
-			span.SetStatus(codes.Error, stage)
-			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
-		}
-		span.End()
-	}()
-
-	stage = "BuildURL"
-	u := uri.Clone(c.requestURL(ctx))
-	var pathParts [1]string
-	pathParts[0] = "/user-token/refresh"
-	uri.AddPathParts(u, pathParts[:]...)
-
-	stage = "EncodeRequest"
-	r, err := ht.NewRequest(ctx, "POST", u)
-	if err != nil {
-		return res, errors.Wrap(err, "create request")
-	}
-
-	{
-		type bitset = [1]uint8
-		var satisfied bitset
-		{
-			stage = "Security:ServiceKey"
-			switch err := c.securityServiceKey(ctx, "UserTokenRefresh", r); {
-			case err == nil: // if NO error
-				satisfied[0] |= 1 << 0
-			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
-				// Skip this security.
-			default:
-				return res, errors.Wrap(err, "security \"ServiceKey\"")
-			}
-		}
-
-		if ok := func() bool {
-		nextRequirement:
-			for _, requirement := range []bitset{
-				{0b00000001},
-			} {
-				for i, mask := range requirement {
-					if satisfied[i]&mask != mask {
-						continue nextRequirement
-					}
-				}
-				return true
-			}
-			return false
-		}(); !ok {
-			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
-		}
-	}
-
-	stage = "SendRequest"
-	resp, err := c.cfg.Client.Do(r)
-	if err != nil {
-		return res, errors.Wrap(err, "do request")
-	}
-	defer resp.Body.Close()
-
-	stage = "DecodeResponse"
-	result, err := decodeUserTokenRefreshResponse(resp)
+	result, err := decodeTalentUserTokenGetResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}

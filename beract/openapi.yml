@@ -7,7 +7,10 @@ info:
 
     # Changelog
 
-    История изменений API начиная с версии `0.1`.
+    ### WIP
+    - Добавлен [метод чтения баллов сгруппированных по традициям](#operation/ActivitiesScoresByTraditions).
+    - Добавлен [эндпоинт чтения активности по ее ID](#operation/ActivityRead).
+    - Добавлен [эндпоинт чтения ID традиции контекста](#operation/ContextTraditionID).
 
     ### 0.2
     [Для передачи активности](#operation/ActivitiesCreate) теперь обязательно нужно указывать версию приложения.
@@ -191,6 +194,59 @@ paths:
           schema:
             type: integer
             format: int32
+  /activities/{activity_id}:
+    get:
+      operationId: ActivityRead
+      summary: Чтение активности
+      security: []
+      tags: [service]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Activity'
+                  - type: object
+                    required:
+                      - context_properties
+                      - metrics
+                    properties:
+                      context_properties:
+                        type: object
+                        description: Свойства контекста активности.
+                        additionalProperties:
+                          type: object
+                          required:
+                            - value_string
+                            - value_number
+                          properties:
+                            value_string:
+                              type: string
+                              nullable: true
+                            value_number:
+                              type: number
+                              format: float64
+                              nullable: true
+                      metrics:
+                        type: object
+                        description: Метрики активности.
+                        additionalProperties:
+                          type: number
+                          format: float64
+        '404':
+          description: Активность не найдена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      parameters:
+        - name: activity_id
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ActivityID'
   /artefacts:
     post:
       operationId: ArtefactsCreate
@@ -320,6 +376,33 @@ paths:
                     name:
                       type: string
                       description: Название типа артефактов.
+  /contexts/{context_id}/tradition-id:
+    get:
+      operationId: ContextTraditionID
+      summary: Традиция контекста
+      security: []
+      tags: [service]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: integer
+                format: int32
+                description: ID традиции
+        '404':
+          description: Контекст не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    parameters:
+      - name: context_id
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/ContextID'
 components:
   schemas:
     Activity:

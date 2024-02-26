@@ -837,6 +837,23 @@ func (s *ServiceKey) SetAPIKey(val string) {
 	s.APIKey = val
 }
 
+type TalentOAuth struct {
+	Token string
+}
+
+// GetToken returns the value of Token.
+func (s *TalentOAuth) GetToken() string {
+	return s.Token
+}
+
+// SetToken sets the value of Token.
+func (s *TalentOAuth) SetToken(val string) {
+	s.Token = val
+}
+
+// TalentOAuthAuthorizeOK is response for TalentOAuthAuthorize operation.
+type TalentOAuthAuthorizeOK struct{}
+
 // TalentOAuthCompleteFound is response for TalentOAuthComplete operation.
 type TalentOAuthCompleteFound struct {
 	Location string
@@ -869,7 +886,3 @@ func (s *TalentOAuthConnectFound) SetLocation(val string) {
 
 // TalentOAuthDisconnectNoContent is response for TalentOAuthDisconnect operation.
 type TalentOAuthDisconnectNoContent struct{}
-
-type UserTokenGetOK struct{}
-
-type UserTokenRefreshOK struct{}

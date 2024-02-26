@@ -78,6 +78,12 @@ type Invoker interface {
 	//
 	// GET /activities/scores/traditions
 	ActivitiesScoresByTraditions(ctx context.Context, params ActivitiesScoresByTraditionsParams) (ActivitiesScoresByTraditionsRes, error)
+	// ActivityRead invokes ActivityRead operation.
+	//
+	// Чтение активности.
+	//
+	// GET /activities/{activity_id}
+	ActivityRead(ctx context.Context, params ActivityReadParams) (ActivityReadRes, error)
 	// ArtefactSetUploaded invokes ArtefactSetUploaded operation.
 	//
 	// Подтверждение загрузки артефакта.
@@ -107,6 +113,12 @@ type Invoker interface {
 	//
 	// POST /artefacts
 	ArtefactsCreate(ctx context.Context, request *ArtefactsCreateReqWithContentType, params ArtefactsCreateParams) (ArtefactsCreateRes, error)
+	// ContextTraditionID invokes ContextTraditionID operation.
+	//
+	// Традиция контекста.
+	//
+	// GET /contexts/{context_id}/tradition-id
+	ContextTraditionID(ctx context.Context, params ContextTraditionIDParams) (ContextTraditionIDRes, error)
 }
 
 // Client implements OAS client.
@@ -739,6 +751,99 @@ func (c *Client) sendActivitiesScoresByTraditions(ctx context.Context, params Ac
 	return result, nil
 }
 
+// ActivityRead invokes ActivityRead operation.
+//
+// Чтение активности.
+//
+// GET /activities/{activity_id}
+func (c *Client) ActivityRead(ctx context.Context, params ActivityReadParams) (ActivityReadRes, error) {
+	res, err := c.sendActivityRead(ctx, params)
+	return res, err
+}
+
+func (c *Client) sendActivityRead(ctx context.Context, params ActivityReadParams) (res ActivityReadRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("ActivityRead"),
+		semconv.HTTPMethodKey.String("GET"),
+		semconv.HTTPRouteKey.String("/activities/{activity_id}"),
+	}
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(float64(elapsedDuration)/float64(time.Millisecond)), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, "ActivityRead",
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [2]string
+	pathParts[0] = "/activities/"
+	{
+		// Encode "activity_id" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "activity_id",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			if unwrapped := uuid.UUID(params.ActivityID); true {
+				return e.EncodeValue(conv.UUIDToString(unwrapped))
+			}
+			return nil
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[1] = encoded
+	}
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "GET", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	defer resp.Body.Close()
+
+	stage = "DecodeResponse"
+	result, err := decodeActivityReadResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
 // ArtefactSetUploaded invokes ArtefactSetUploaded operation.
 //
 // Подтверждение загрузки артефакта.
@@ -1196,6 +1301,100 @@ func (c *Client) sendArtefactsCreate(ctx context.Context, request *ArtefactsCrea
 
 	stage = "DecodeResponse"
 	result, err := decodeArtefactsCreateResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// ContextTraditionID invokes ContextTraditionID operation.
+//
+// Традиция контекста.
+//
+// GET /contexts/{context_id}/tradition-id
+func (c *Client) ContextTraditionID(ctx context.Context, params ContextTraditionIDParams) (ContextTraditionIDRes, error) {
+	res, err := c.sendContextTraditionID(ctx, params)
+	return res, err
+}
+
+func (c *Client) sendContextTraditionID(ctx context.Context, params ContextTraditionIDParams) (res ContextTraditionIDRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("ContextTraditionID"),
+		semconv.HTTPMethodKey.String("GET"),
+		semconv.HTTPRouteKey.String("/contexts/{context_id}/tradition-id"),
+	}
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(float64(elapsedDuration)/float64(time.Millisecond)), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, "ContextTraditionID",
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [3]string
+	pathParts[0] = "/contexts/"
+	{
+		// Encode "context_id" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "context_id",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			if unwrapped := uuid.UUID(params.ContextID); true {
+				return e.EncodeValue(conv.UUIDToString(unwrapped))
+			}
+			return nil
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[1] = encoded
+	}
+	pathParts[2] = "/tradition-id"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "GET", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	defer resp.Body.Close()
+
+	stage = "DecodeResponse"
+	result, err := decodeContextTraditionIDResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}

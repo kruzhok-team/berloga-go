@@ -408,6 +408,215 @@ func (s *ActivityQuarantine) UnmarshalText(data []byte) error {
 	}
 }
 
+// Merged schema.
+type ActivityReadOK struct {
+	ID ActivityID `json:"id"`
+	// Дата записи активности.
+	CreatedAt  time.Time                   `json:"created_at"`
+	ContextID  ContextID                   `json:"context_id"`
+	PlayerID   PlayerID                    `json:"player_id"`
+	AppVersion ActivityAppVersion          `json:"app_version"`
+	Scores     NilActivityScores           `json:"scores"`
+	ArtefactID NilUUID                     `json:"artefact_id"`
+	Quarantine NilActivityReadOKQuarantine `json:"quarantine"`
+	// Свойства контекста активности.
+	ContextProperties ActivityReadOKContextProperties `json:"context_properties"`
+	// Метрики активности.
+	Metrics ActivityReadOKMetrics `json:"metrics"`
+}
+
+// GetID returns the value of ID.
+func (s *ActivityReadOK) GetID() ActivityID {
+	return s.ID
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *ActivityReadOK) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetContextID returns the value of ContextID.
+func (s *ActivityReadOK) GetContextID() ContextID {
+	return s.ContextID
+}
+
+// GetPlayerID returns the value of PlayerID.
+func (s *ActivityReadOK) GetPlayerID() PlayerID {
+	return s.PlayerID
+}
+
+// GetAppVersion returns the value of AppVersion.
+func (s *ActivityReadOK) GetAppVersion() ActivityAppVersion {
+	return s.AppVersion
+}
+
+// GetScores returns the value of Scores.
+func (s *ActivityReadOK) GetScores() NilActivityScores {
+	return s.Scores
+}
+
+// GetArtefactID returns the value of ArtefactID.
+func (s *ActivityReadOK) GetArtefactID() NilUUID {
+	return s.ArtefactID
+}
+
+// GetQuarantine returns the value of Quarantine.
+func (s *ActivityReadOK) GetQuarantine() NilActivityReadOKQuarantine {
+	return s.Quarantine
+}
+
+// GetContextProperties returns the value of ContextProperties.
+func (s *ActivityReadOK) GetContextProperties() ActivityReadOKContextProperties {
+	return s.ContextProperties
+}
+
+// GetMetrics returns the value of Metrics.
+func (s *ActivityReadOK) GetMetrics() ActivityReadOKMetrics {
+	return s.Metrics
+}
+
+// SetID sets the value of ID.
+func (s *ActivityReadOK) SetID(val ActivityID) {
+	s.ID = val
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *ActivityReadOK) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetContextID sets the value of ContextID.
+func (s *ActivityReadOK) SetContextID(val ContextID) {
+	s.ContextID = val
+}
+
+// SetPlayerID sets the value of PlayerID.
+func (s *ActivityReadOK) SetPlayerID(val PlayerID) {
+	s.PlayerID = val
+}
+
+// SetAppVersion sets the value of AppVersion.
+func (s *ActivityReadOK) SetAppVersion(val ActivityAppVersion) {
+	s.AppVersion = val
+}
+
+// SetScores sets the value of Scores.
+func (s *ActivityReadOK) SetScores(val NilActivityScores) {
+	s.Scores = val
+}
+
+// SetArtefactID sets the value of ArtefactID.
+func (s *ActivityReadOK) SetArtefactID(val NilUUID) {
+	s.ArtefactID = val
+}
+
+// SetQuarantine sets the value of Quarantine.
+func (s *ActivityReadOK) SetQuarantine(val NilActivityReadOKQuarantine) {
+	s.Quarantine = val
+}
+
+// SetContextProperties sets the value of ContextProperties.
+func (s *ActivityReadOK) SetContextProperties(val ActivityReadOKContextProperties) {
+	s.ContextProperties = val
+}
+
+// SetMetrics sets the value of Metrics.
+func (s *ActivityReadOK) SetMetrics(val ActivityReadOKMetrics) {
+	s.Metrics = val
+}
+
+func (*ActivityReadOK) activityReadRes() {}
+
+// Свойства контекста активности.
+type ActivityReadOKContextProperties map[string]ActivityReadOKContextPropertiesItem
+
+func (s *ActivityReadOKContextProperties) init() ActivityReadOKContextProperties {
+	m := *s
+	if m == nil {
+		m = map[string]ActivityReadOKContextPropertiesItem{}
+		*s = m
+	}
+	return m
+}
+
+type ActivityReadOKContextPropertiesItem struct {
+	ValueString NilString  `json:"value_string"`
+	ValueNumber NilFloat64 `json:"value_number"`
+}
+
+// GetValueString returns the value of ValueString.
+func (s *ActivityReadOKContextPropertiesItem) GetValueString() NilString {
+	return s.ValueString
+}
+
+// GetValueNumber returns the value of ValueNumber.
+func (s *ActivityReadOKContextPropertiesItem) GetValueNumber() NilFloat64 {
+	return s.ValueNumber
+}
+
+// SetValueString sets the value of ValueString.
+func (s *ActivityReadOKContextPropertiesItem) SetValueString(val NilString) {
+	s.ValueString = val
+}
+
+// SetValueNumber sets the value of ValueNumber.
+func (s *ActivityReadOKContextPropertiesItem) SetValueNumber(val NilFloat64) {
+	s.ValueNumber = val
+}
+
+// Метрики активности.
+type ActivityReadOKMetrics map[string]float64
+
+func (s *ActivityReadOKMetrics) init() ActivityReadOKMetrics {
+	m := *s
+	if m == nil {
+		m = map[string]float64{}
+		*s = m
+	}
+	return m
+}
+
+type ActivityReadOKQuarantine string
+
+const (
+	ActivityReadOKQuarantineMissingArtefact ActivityReadOKQuarantine = "missing_artefact"
+	ActivityReadOKQuarantineInvalidArtefact ActivityReadOKQuarantine = "invalid_artefact"
+)
+
+// AllValues returns all ActivityReadOKQuarantine values.
+func (ActivityReadOKQuarantine) AllValues() []ActivityReadOKQuarantine {
+	return []ActivityReadOKQuarantine{
+		ActivityReadOKQuarantineMissingArtefact,
+		ActivityReadOKQuarantineInvalidArtefact,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ActivityReadOKQuarantine) MarshalText() ([]byte, error) {
+	switch s {
+	case ActivityReadOKQuarantineMissingArtefact:
+		return []byte(s), nil
+	case ActivityReadOKQuarantineInvalidArtefact:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ActivityReadOKQuarantine) UnmarshalText(data []byte) error {
+	switch ActivityReadOKQuarantine(data) {
+	case ActivityReadOKQuarantineMissingArtefact:
+		*s = ActivityReadOKQuarantineMissingArtefact
+		return nil
+	case ActivityReadOKQuarantineInvalidArtefact:
+		*s = ActivityReadOKQuarantineInvalidArtefact
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 type ActivityScores float64
 
 // Записываемая игровая активность.
@@ -664,6 +873,10 @@ func (s *BerlogaJWT) SetAPIKey(val string) {
 
 type ContextID uuid.UUID
 
+type ContextTraditionIDOKApplicationJSON int32
+
+func (*ContextTraditionIDOKApplicationJSON) contextTraditionIDRes() {}
+
 // Ref: #/components/schemas/Error
 type Error struct {
 	// Описание ошибки.
@@ -682,7 +895,9 @@ func (s *Error) SetErrorMessage(val string) {
 
 func (*Error) activitiesCreateRes()             {}
 func (*Error) activitiesScoresByTraditionsRes() {}
+func (*Error) activityReadRes()                 {}
 func (*Error) artefactsCreateRes()              {}
+func (*Error) contextTraditionIDRes()           {}
 
 // NewNilActivityQuarantine returns new NilActivityQuarantine with value set to v.
 func NewNilActivityQuarantine(v ActivityQuarantine) NilActivityQuarantine {
@@ -729,6 +944,51 @@ func (o NilActivityQuarantine) Or(d ActivityQuarantine) ActivityQuarantine {
 	return d
 }
 
+// NewNilActivityReadOKQuarantine returns new NilActivityReadOKQuarantine with value set to v.
+func NewNilActivityReadOKQuarantine(v ActivityReadOKQuarantine) NilActivityReadOKQuarantine {
+	return NilActivityReadOKQuarantine{
+		Value: v,
+	}
+}
+
+// NilActivityReadOKQuarantine is nullable ActivityReadOKQuarantine.
+type NilActivityReadOKQuarantine struct {
+	Value ActivityReadOKQuarantine
+	Null  bool
+}
+
+// SetTo sets value to v.
+func (o *NilActivityReadOKQuarantine) SetTo(v ActivityReadOKQuarantine) {
+	o.Null = false
+	o.Value = v
+}
+
+// IsSet returns true if value is Null.
+func (o NilActivityReadOKQuarantine) IsNull() bool { return o.Null }
+
+// SetNull sets value to null.
+func (o *NilActivityReadOKQuarantine) SetToNull() {
+	o.Null = true
+	var v ActivityReadOKQuarantine
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o NilActivityReadOKQuarantine) Get() (v ActivityReadOKQuarantine, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o NilActivityReadOKQuarantine) Or(d ActivityReadOKQuarantine) ActivityReadOKQuarantine {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewNilActivityScores returns new NilActivityScores with value set to v.
 func NewNilActivityScores(v ActivityScores) NilActivityScores {
 	return NilActivityScores{
@@ -768,6 +1028,96 @@ func (o NilActivityScores) Get() (v ActivityScores, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o NilActivityScores) Or(d ActivityScores) ActivityScores {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewNilFloat64 returns new NilFloat64 with value set to v.
+func NewNilFloat64(v float64) NilFloat64 {
+	return NilFloat64{
+		Value: v,
+	}
+}
+
+// NilFloat64 is nullable float64.
+type NilFloat64 struct {
+	Value float64
+	Null  bool
+}
+
+// SetTo sets value to v.
+func (o *NilFloat64) SetTo(v float64) {
+	o.Null = false
+	o.Value = v
+}
+
+// IsSet returns true if value is Null.
+func (o NilFloat64) IsNull() bool { return o.Null }
+
+// SetNull sets value to null.
+func (o *NilFloat64) SetToNull() {
+	o.Null = true
+	var v float64
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o NilFloat64) Get() (v float64, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o NilFloat64) Or(d float64) float64 {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewNilString returns new NilString with value set to v.
+func NewNilString(v string) NilString {
+	return NilString{
+		Value: v,
+	}
+}
+
+// NilString is nullable string.
+type NilString struct {
+	Value string
+	Null  bool
+}
+
+// SetTo sets value to v.
+func (o *NilString) SetTo(v string) {
+	o.Null = false
+	o.Value = v
+}
+
+// IsSet returns true if value is Null.
+func (o NilString) IsNull() bool { return o.Null }
+
+// SetNull sets value to null.
+func (o *NilString) SetToNull() {
+	o.Null = true
+	var v string
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o NilString) Get() (v string, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o NilString) Or(d string) string {
 	if v, ok := o.Get(); ok {
 		return v
 	}

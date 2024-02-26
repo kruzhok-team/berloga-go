@@ -16,6 +16,10 @@ type SecuritySource interface {
 	BerlogaJWT(ctx context.Context, operationName string) (BerlogaJWT, error)
 	// ServiceKey provides ServiceKey security value.
 	ServiceKey(ctx context.Context, operationName string) (ServiceKey, error)
+	// TalentOAuth provides TalentOAuth security value.
+	// JWT, полученный [OAuth провайдером платформы
+	// Талант](/api/docs/).
+	TalentOAuth(ctx context.Context, operationName string) (TalentOAuth, error)
 }
 
 func (s *Client) securityBerlogaJWT(ctx context.Context, operationName string, req *http.Request) error {
@@ -32,5 +36,13 @@ func (s *Client) securityServiceKey(ctx context.Context, operationName string, r
 		return errors.Wrap(err, "security source \"ServiceKey\"")
 	}
 	req.Header.Set("X-Service-Key", t.APIKey)
+	return nil
+}
+func (s *Client) securityTalentOAuth(ctx context.Context, operationName string, req *http.Request) error {
+	t, err := s.sec.TalentOAuth(ctx, operationName)
+	if err != nil {
+		return errors.Wrap(err, "security source \"TalentOAuth\"")
+	}
+	req.Header.Set("Authorization", "Bearer "+t.Token)
 	return nil
 }

@@ -30,6 +30,11 @@ type ActivitiesScoresByTraditionsParams struct {
 	TalentID int32
 }
 
+// ActivityReadParams is parameters of ActivityRead operation.
+type ActivityReadParams struct {
+	ActivityID ActivityID
+}
+
 // ArtefactSetUploadedParams is parameters of ArtefactSetUploaded operation.
 type ArtefactSetUploadedParams struct {
 	ArtefactID ArtefactID
@@ -46,4 +51,9 @@ type ArtefactsCreateParams struct {
 	XArtefactType int32
 	// SHA-1 контрольная сумма.
 	XChecksum string
+}
+
+// ContextTraditionIDParams is parameters of ContextTraditionID operation.
+type ContextTraditionIDParams struct {
+	ContextID ContextID
 }
