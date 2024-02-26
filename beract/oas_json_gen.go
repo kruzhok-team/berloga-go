@@ -1137,6 +1137,14 @@ func (s *ActivityReadOK) encodeFields(e *jx.Encoder) {
 		s.Quarantine.Encode(e)
 	}
 	{
+		e.FieldStart("application_id")
+		json.EncodeUUID(e, s.ApplicationID)
+	}
+	{
+		e.FieldStart("tradition_id")
+		e.Int32(s.TraditionID)
+	}
+	{
 		e.FieldStart("context_properties")
 		s.ContextProperties.Encode(e)
 	}
@@ -1146,17 +1154,19 @@ func (s *ActivityReadOK) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfActivityReadOK = [10]string{
-	0: "id",
-	1: "created_at",
-	2: "context_id",
-	3: "player_id",
-	4: "app_version",
-	5: "scores",
-	6: "artefact_id",
-	7: "quarantine",
-	8: "context_properties",
-	9: "metrics",
+var jsonFieldsNameOfActivityReadOK = [12]string{
+	0:  "id",
+	1:  "created_at",
+	2:  "context_id",
+	3:  "player_id",
+	4:  "app_version",
+	5:  "scores",
+	6:  "artefact_id",
+	7:  "quarantine",
+	8:  "application_id",
+	9:  "tradition_id",
+	10: "context_properties",
+	11: "metrics",
 }
 
 // Decode decodes ActivityReadOK from json.
@@ -1250,8 +1260,32 @@ func (s *ActivityReadOK) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"quarantine\"")
 			}
-		case "context_properties":
+		case "application_id":
 			requiredBitSet[1] |= 1 << 0
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.ApplicationID = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"application_id\"")
+			}
+		case "tradition_id":
+			requiredBitSet[1] |= 1 << 1
+			if err := func() error {
+				v, err := d.Int32()
+				s.TraditionID = int32(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"tradition_id\"")
+			}
+		case "context_properties":
+			requiredBitSet[1] |= 1 << 2
 			if err := func() error {
 				if err := s.ContextProperties.Decode(d); err != nil {
 					return err
@@ -1261,7 +1295,7 @@ func (s *ActivityReadOK) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"context_properties\"")
 			}
 		case "metrics":
-			requiredBitSet[1] |= 1 << 1
+			requiredBitSet[1] |= 1 << 3
 			if err := func() error {
 				if err := s.Metrics.Decode(d); err != nil {
 					return err
@@ -1281,7 +1315,7 @@ func (s *ActivityReadOK) Decode(d *jx.Decoder) error {
 	var failures []validate.FieldError
 	for i, mask := range [2]uint8{
 		0b11111111,
-		0b00000011,
+		0b00001111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.

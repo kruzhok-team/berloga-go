@@ -419,6 +419,10 @@ type ActivityReadOK struct {
 	Scores     NilActivityScores           `json:"scores"`
 	ArtefactID NilUUID                     `json:"artefact_id"`
 	Quarantine NilActivityReadOKQuarantine `json:"quarantine"`
+	// Идентификатор приложения.
+	ApplicationID uuid.UUID `json:"application_id"`
+	// ID традиции.
+	TraditionID int32 `json:"tradition_id"`
 	// Свойства контекста активности.
 	ContextProperties ActivityReadOKContextProperties `json:"context_properties"`
 	// Метрики активности.
@@ -463,6 +467,16 @@ func (s *ActivityReadOK) GetArtefactID() NilUUID {
 // GetQuarantine returns the value of Quarantine.
 func (s *ActivityReadOK) GetQuarantine() NilActivityReadOKQuarantine {
 	return s.Quarantine
+}
+
+// GetApplicationID returns the value of ApplicationID.
+func (s *ActivityReadOK) GetApplicationID() uuid.UUID {
+	return s.ApplicationID
+}
+
+// GetTraditionID returns the value of TraditionID.
+func (s *ActivityReadOK) GetTraditionID() int32 {
+	return s.TraditionID
 }
 
 // GetContextProperties returns the value of ContextProperties.
@@ -513,6 +527,16 @@ func (s *ActivityReadOK) SetArtefactID(val NilUUID) {
 // SetQuarantine sets the value of Quarantine.
 func (s *ActivityReadOK) SetQuarantine(val NilActivityReadOKQuarantine) {
 	s.Quarantine = val
+}
+
+// SetApplicationID sets the value of ApplicationID.
+func (s *ActivityReadOK) SetApplicationID(val uuid.UUID) {
+	s.ApplicationID = val
+}
+
+// SetTraditionID sets the value of TraditionID.
+func (s *ActivityReadOK) SetTraditionID(val int32) {
+	s.TraditionID = val
 }
 
 // SetContextProperties sets the value of ContextProperties.

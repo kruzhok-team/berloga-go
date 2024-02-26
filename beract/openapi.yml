@@ -210,9 +210,19 @@ paths:
                   - $ref: '#/components/schemas/Activity'
                   - type: object
                     required:
+                      - application_id
+                      - tradition_id
                       - context_properties
                       - metrics
                     properties:
+                      application_id:
+                        type: string
+                        format: uuid
+                        description: Идентификатор приложения.
+                      tradition_id:
+                        type: integer
+                        format: int32
+                        description: ID традиции.
                       context_properties:
                         type: object
                         description: Свойства контекста активности.
