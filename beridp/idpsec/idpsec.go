@@ -16,6 +16,12 @@ type SecuritySource struct {
 	Src secsrc.SecuritySource
 }
 
+// TalentOAuth implements beridp.SecuritySource.
+func (s *SecuritySource) TalentOAuth(ctx context.Context, operationName string) (beridp.TalentOAuth, error) {
+	tok, err := s.Src.TalentOAuth(ctx, operationName)
+	return beridp.TalentOAuth{Token: tok}, err
+}
+
 // BerlogaJWT implements beridp.SecuritySource
 func (s *SecuritySource) BerlogaJWT(ctx context.Context, operationName string) (beridp.BerlogaJWT, error) {
 	tok, err := s.Src.BerlogaJWT(ctx, operationName)

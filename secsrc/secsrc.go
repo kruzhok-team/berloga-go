@@ -10,6 +10,7 @@ import (
 )
 
 type SecuritySource interface {
+	TalentOAuth(ctx context.Context, operationName string) (string, error)
 	BerlogaJWT(ctx context.Context, operationName string) (string, error)
 	ServiceKey(ctx context.Context, operationName string) (string, error)
 }
@@ -20,6 +21,18 @@ func Context() SecuritySource {
 }
 
 type contextSource struct{}
+
+// TalentOAuth implements SecuritySource.
+func (*contextSource) TalentOAuth(ctx context.Context, operationName string) (string, error) {
+	if berauth.GetAuthType(ctx) != berauth.AuthTalentOAuth {
+		return "", ogenerrors.ErrSkipClientSecurity
+	}
+	usr, err := berauth.GetUser(ctx)
+	if err != nil {
+		return "", errors.Wrap(err, "get user")
+	}
+	return usr.Token, nil
+}
 
 // BerlogaJWT implements SecuritySource.
 func (*contextSource) BerlogaJWT(ctx context.Context, operationName string) (string, error) {
@@ -60,6 +73,14 @@ func ServiceKey(key string) SecuritySource {
 type tokenSource struct {
 	authType berauth.AuthType
 	token    string
+}
+
+// TalentOAuth implements SecuritySource.
+func (src *tokenSource) TalentOAuth(ctx context.Context, operationName string) (string, error) {
+	if src.authType != berauth.AuthTalentOAuth {
+		return "", ogenerrors.ErrSkipClientSecurity
+	}
+	return src.token, nil
 }
 
 // BerlogaJWT implements SecuritySource.
