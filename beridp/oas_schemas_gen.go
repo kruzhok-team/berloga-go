@@ -26,7 +26,7 @@ type Application struct {
 	IsPublic bool `json:"is_public"`
 	// Название приложения.
 	Name string `json:"name"`
-	// URL иконки приложения.
+	// URL изображения приложения для лаунчера.
 	IconURL string `json:"icon_url"`
 	// Идентификатор Android приложения.
 	PackageName string `json:"package_name"`

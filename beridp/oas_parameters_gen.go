@@ -41,6 +41,13 @@ type TalentOAuthCompleteParams struct {
 	State uuid.UUID
 }
 
+// TalentOAuthConnectParams is parameters of TalentOAuthConnect operation.
+type TalentOAuthConnectParams struct {
+	// URI перенаправления пользователя после авторизации
+	// Берлоги в Таланте.
+	RedirectURI OptString
+}
+
 // TalentUserPlayersParams is parameters of TalentUserPlayers operation.
 type TalentUserPlayersParams struct {
 	// ID пользователя Таланта.

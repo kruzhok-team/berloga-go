@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Провайдер учетных данных Берлоги
-  version: '0.2'
+  version: '0.3'
   description: |-
     Провайдер учетных данных для мобильных игр Берлоги.
     Предназначен для использования как мобильными приложениями, так и другими сервисами Берлоги.
@@ -10,6 +10,9 @@ info:
     # Changelog
 
     ### В разработке
+    Для [TalentOAuthConnect](#operation/TalentOAuthConnect) добавлен опциональный параметр `redirect_uri`.
+
+    ### 0.3
     Для [TalentUserPlayers](#operation/TalentUserPlayers) добавлена поддержка TalentOAuth.
   contact:
     email: talent@kruzhok.org
@@ -70,6 +73,7 @@ paths:
               - !!str true
               - !!str false
               - all
+            default: !!str true
         - in: query
           name: order_by
           description: Порядок сортировки результатов.
@@ -135,7 +139,7 @@ paths:
         Чтение информации об игроке.
 
         По-умолчанию ответ не содержит каких-либо данных. Для того чтобы добавить в ответ какие-то из параметров игрока, нужно указать их соотвествующими параметрами запроса `get_*`.
-      security: [BerlogaJWT: []]
+      security: [BerlogaJWT: [], ServiceKey: []]
       tags: [application, service]
       responses:
         '200':
@@ -307,6 +311,12 @@ paths:
                 type: string
         default:
           $ref: '#/components/responses/Error'
+      parameters:
+        - name: redirect_uri
+          description: URI перенаправления пользователя после авторизации Берлоги в Таланте.
+          in: query
+          schema:
+            type: string
   /talent-oauth/disconnect:
     post:
       operationId: TalentOAuthDisconnect
@@ -411,7 +421,7 @@ components:
           description: Название приложения.
         icon_url:
           type: string
-          description: URL иконки приложения.
+          description: URL изображения приложения для лаунчера.
         package_name:
           type: string
           description: Идентификатор Android приложения.

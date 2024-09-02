@@ -88,7 +88,7 @@ type Invoker interface {
 	// авторизации Берлоги в Таланте.
 	//
 	// GET /talent-oauth/connect
-	TalentOAuthConnect(ctx context.Context) (*TalentOAuthConnectFound, error)
+	TalentOAuthConnect(ctx context.Context, params TalentOAuthConnectParams) (*TalentOAuthConnectFound, error)
 	// TalentOAuthDisconnect invokes TalentOAuthDisconnect operation.
 	//
 	// Если у игрока и так (уже) нет авторизованной учетной
@@ -514,11 +514,23 @@ func (c *Client) sendPlayerGet(ctx context.Context, params PlayerGetParams) (res
 				return res, errors.Wrap(err, "security \"BerlogaJWT\"")
 			}
 		}
+		{
+			stage = "Security:ServiceKey"
+			switch err := c.securityServiceKey(ctx, "PlayerGet", r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"ServiceKey\"")
+			}
+		}
 
 		if ok := func() bool {
 		nextRequirement:
 			for _, requirement := range []bitset{
 				{0b00000001},
+				{0b00000010},
 			} {
 				for i, mask := range requirement {
 					if satisfied[i]&mask != mask {
@@ -934,12 +946,12 @@ func (c *Client) sendTalentOAuthComplete(ctx context.Context, params TalentOAuth
 // авторизации Берлоги в Таланте.
 //
 // GET /talent-oauth/connect
-func (c *Client) TalentOAuthConnect(ctx context.Context) (*TalentOAuthConnectFound, error) {
-	res, err := c.sendTalentOAuthConnect(ctx)
+func (c *Client) TalentOAuthConnect(ctx context.Context, params TalentOAuthConnectParams) (*TalentOAuthConnectFound, error) {
+	res, err := c.sendTalentOAuthConnect(ctx, params)
 	return res, err
 }
 
-func (c *Client) sendTalentOAuthConnect(ctx context.Context) (res *TalentOAuthConnectFound, err error) {
+func (c *Client) sendTalentOAuthConnect(ctx context.Context, params TalentOAuthConnectParams) (res *TalentOAuthConnectFound, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("TalentOAuthConnect"),
 		semconv.HTTPMethodKey.String("GET"),
@@ -978,6 +990,27 @@ func (c *Client) sendTalentOAuthConnect(ctx context.Context) (res *TalentOAuthCo
 	var pathParts [1]string
 	pathParts[0] = "/talent-oauth/connect"
 	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeQueryParams"
+	q := uri.NewQueryEncoder()
+	{
+		// Encode "redirect_uri" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "redirect_uri",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.RedirectURI.Get(); ok {
+				return e.EncodeValue(conv.StringToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	u.RawQuery = q.Values().Encode()
 
 	stage = "EncodeRequest"
 	r, err := ht.NewRequest(ctx, "GET", u)
