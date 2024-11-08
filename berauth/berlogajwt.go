@@ -55,13 +55,13 @@ type berlogaJWT struct {
 // Auth implements Authenticator
 func (self *berlogaJWT) Auth(ctx context.Context, credentials string) (context.Context, error) {
 	if credentials == "" {
-		return ctx, ErrUnauthorized
+		return ctx, &CredentialsAuthError{ErrUnauthorized}
 	}
 	var err error
 	p := Player{Token: credentials}
 	p.JWT, err = jwt.Parse([]byte(credentials), jwt.WithKeySet(self.jwks))
 	if err != nil {
-		return ctx, err
+		return ctx, &CredentialsAuthError{err}
 	}
 	p.ApplicationID, err = uuid.Parse(p.JWT.Issuer())
 	if err != nil {

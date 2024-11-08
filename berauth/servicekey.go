@@ -44,13 +44,13 @@ type serviceKey struct {
 // Auth implements Authenticator
 func (s *serviceKey) Auth(ctx context.Context, credentials string) (context.Context, error) {
 	if credentials == "" {
-		return ctx, ErrUnauthorized
+		return ctx, &CredentialsAuthError{ErrUnauthorized}
 	}
 	if s.key == "" {
 		return ctx, ErrMissingServiceKey
 	}
 	if credentials != s.key {
-		return ctx, ErrUnauthorized
+		return ctx, &CredentialsAuthError{ErrUnauthorized}
 	}
 	return SetServiceKey(ctx, credentials), nil
 }

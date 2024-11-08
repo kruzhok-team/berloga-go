@@ -54,13 +54,13 @@ type talentOAuth struct {
 // Auth implements Authenticator
 func (self *talentOAuth) Auth(ctx context.Context, credentials string) (context.Context, error) {
 	if credentials == "" {
-		return ctx, ErrUnauthorized
+		return ctx, &CredentialsAuthError{ErrUnauthorized}
 	}
 	var err error
 	u := User{Token: credentials}
 	u.JWT, err = jwt.Parse([]byte(credentials), jwt.WithKeySet(self.jwks))
 	if err != nil {
-		return ctx, err
+		return ctx, &CredentialsAuthError{err}
 	}
 	names := jwtClaimSub.SubexpNames()
 	for i, m := range jwtClaimSub.FindStringSubmatch(u.JWT.Subject()) {
