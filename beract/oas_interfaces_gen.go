@@ -5,6 +5,10 @@ type ActivitiesCreateRes interface {
 	activitiesCreateRes()
 }
 
+type ActivitiesMetricsListRes interface {
+	activitiesMetricsListRes()
+}
+
 type ActivitiesScoresByTraditionsRes interface {
 	activitiesScoresByTraditionsRes()
 }
@@ -29,6 +33,22 @@ type ArtefactsCreateRes interface {
 	artefactsCreateRes()
 }
 
+type ContextIDsListRes interface {
+	contextIDsListRes()
+}
+
 type ContextTraditionIDRes interface {
 	contextTraditionIDRes()
+}
+
+type ContextsImportReq interface {
+	contextsImportReq()
+}
+
+type ContextsImportRes interface {
+	contextsImportRes()
+}
+
+type ContextsListRes interface {
+	contextsListRes()
 }

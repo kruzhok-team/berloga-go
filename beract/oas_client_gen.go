@@ -28,8 +28,8 @@ type Invoker interface {
 	// ActivitiesCreate invokes ActivitiesCreate operation.
 	//
 	// Каждая из активностей опционально может иметь
-	// метриики и артефакт.
-	// Запись активностей доступа в коротком и расширенном
+	// метрики и артефакт.
+	// Запись активностей доступна в коротком и расширенном
 	// форматах.
 	// #### Короткий формат
 	// Передается только массив активностей. Если они
@@ -65,6 +65,16 @@ type Invoker interface {
 	//
 	// GET /activities
 	ActivitiesList(ctx context.Context, params ActivitiesListParams) ([]Activity, error)
+	// ActivitiesMetricsList invokes ActivitiesMetricsList operation.
+	//
+	// Необходимо указать параметры выбора контекстов.
+	// Это могут быть либо идентификаторы конкретных
+	// контекстов `context_ids`.
+	// Либо набор фильтров `context_property` и/или ID приложения
+	// `application_id`.
+	//
+	// GET /activities/metrics
+	ActivitiesMetricsList(ctx context.Context, params ActivitiesMetricsListParams) (ActivitiesMetricsListRes, error)
 	// ActivitiesScores invokes ActivitiesScores operation.
 	//
 	// **Обязательно** указание либо `tradition_id`, либо `context_ids`;
@@ -113,12 +123,47 @@ type Invoker interface {
 	//
 	// POST /artefacts
 	ArtefactsCreate(ctx context.Context, request *ArtefactsCreateReqWithContentType, params ArtefactsCreateParams) (ArtefactsCreateRes, error)
+	// ContextIDsList invokes ContextIDsList operation.
+	//
+	// Идентификаторы контекстов выбранные по тому же
+	// принципу что и в ActivitiesMetricsList.
+	// Обязательно указание либо `application_id`, либо `property`.
+	// Допускаются оба параметра.
+	//
+	// GET /contexts/id
+	ContextIDsList(ctx context.Context, params ContextIDsListParams) (ContextIDsListRes, error)
 	// ContextTraditionID invokes ContextTraditionID operation.
 	//
 	// Традиция контекста.
 	//
 	// GET /contexts/{context_id}/tradition-id
 	ContextTraditionID(ctx context.Context, params ContextTraditionIDParams) (ContextTraditionIDRes, error)
+	// ContextsImport invokes ContextsImport operation.
+	//
+	// Импортируемая таблица должна содержать колонки `id` и
+	// `description`.
+	// Содержащие в ячейках идентификатор (UUID) и описание
+	// контекста соответственно.
+	// Оставшиеся колонки таблицы будут восприняты как
+	// свойства контекстов.
+	// Тип значения для свойства определяется на основе
+	// значений в ячейках колонки.
+	// Если все значения можно интерпретировать как
+	// числовые, то тип значения у свойства будет числовой.
+	// Если хоть одно значение не приводится к числу, то тип
+	// значения определяется как строковый.
+	// В заголовках запроса так же необходимо указать ID
+	// приложения с контекстами которого будет выполнятся
+	// работа.
+	//
+	// POST /contexts/import
+	ContextsImport(ctx context.Context, request ContextsImportReq, params ContextsImportParams) (ContextsImportRes, error)
+	// ContextsList invokes ContextsList operation.
+	//
+	// Список контекстов.
+	//
+	// GET /contexts
+	ContextsList(ctx context.Context, params ContextsListParams) (ContextsListRes, error)
 }
 
 // Client implements OAS client.
@@ -170,8 +215,8 @@ func (c *Client) requestURL(ctx context.Context) *url.URL {
 // ActivitiesCreate invokes ActivitiesCreate operation.
 //
 // Каждая из активностей опционально может иметь
-// метриики и артефакт.
-// Запись активностей доступа в коротком и расширенном
+// метрики и артефакт.
+// Запись активностей доступна в коротком и расширенном
 // форматах.
 // #### Короткий формат
 // Передается только массив активностей. Если они
@@ -430,6 +475,291 @@ func (c *Client) sendActivitiesList(ctx context.Context, params ActivitiesListPa
 
 	stage = "DecodeResponse"
 	result, err := decodeActivitiesListResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// ActivitiesMetricsList invokes ActivitiesMetricsList operation.
+//
+// Необходимо указать параметры выбора контекстов.
+// Это могут быть либо идентификаторы конкретных
+// контекстов `context_ids`.
+// Либо набор фильтров `context_property` и/или ID приложения
+// `application_id`.
+//
+// GET /activities/metrics
+func (c *Client) ActivitiesMetricsList(ctx context.Context, params ActivitiesMetricsListParams) (ActivitiesMetricsListRes, error) {
+	res, err := c.sendActivitiesMetricsList(ctx, params)
+	return res, err
+}
+
+func (c *Client) sendActivitiesMetricsList(ctx context.Context, params ActivitiesMetricsListParams) (res ActivitiesMetricsListRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("ActivitiesMetricsList"),
+		semconv.HTTPMethodKey.String("GET"),
+		semconv.HTTPRouteKey.String("/activities/metrics"),
+	}
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(float64(elapsedDuration)/float64(time.Millisecond)), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, "ActivitiesMetricsList",
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/activities/metrics"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeQueryParams"
+	q := uri.NewQueryEncoder()
+	{
+		// Encode "offset" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "offset",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.Offset.Get(); ok {
+				return e.EncodeValue(conv.Int32ToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	{
+		// Encode "limit" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "limit",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.Limit.Get(); ok {
+				return e.EncodeValue(conv.Int32ToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	{
+		// Encode "application_id" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "application_id",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.ApplicationID.Get(); ok {
+				return e.EncodeValue(conv.UUIDToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	{
+		// Encode "context_property" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "context_property",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			return e.EncodeArray(func(e uri.Encoder) error {
+				for i, item := range params.ContextProperty {
+					if err := func() error {
+						return e.EncodeValue(conv.StringToString(item))
+					}(); err != nil {
+						return errors.Wrapf(err, "[%d]", i)
+					}
+				}
+				return nil
+			})
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	{
+		// Encode "context_ids" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "context_ids",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			return e.EncodeArray(func(e uri.Encoder) error {
+				for i, item := range params.ContextIds {
+					if err := func() error {
+						if unwrapped := uuid.UUID(item); true {
+							return e.EncodeValue(conv.UUIDToString(unwrapped))
+						}
+						return nil
+					}(); err != nil {
+						return errors.Wrapf(err, "[%d]", i)
+					}
+				}
+				return nil
+			})
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	{
+		// Encode "since" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "since",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.Since.Get(); ok {
+				return e.EncodeValue(conv.DateTimeToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	{
+		// Encode "until" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "until",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.Until.Get(); ok {
+				return e.EncodeValue(conv.DateTimeToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	{
+		// Encode "player_ids" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "player_ids",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			return e.EncodeArray(func(e uri.Encoder) error {
+				for i, item := range params.PlayerIds {
+					if err := func() error {
+						if unwrapped := uuid.UUID(item); true {
+							return e.EncodeValue(conv.UUIDToString(unwrapped))
+						}
+						return nil
+					}(); err != nil {
+						return errors.Wrapf(err, "[%d]", i)
+					}
+				}
+				return nil
+			})
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	u.RawQuery = q.Values().Encode()
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "GET", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:ServiceKey"
+			switch err := c.securityServiceKey(ctx, "ActivitiesMetricsList", r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"ServiceKey\"")
+			}
+		}
+		{
+			stage = "Security:TalentOAuth"
+			switch err := c.securityTalentOAuth(ctx, "ActivitiesMetricsList", r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 1
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"TalentOAuth\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+				{0b00000010},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	defer resp.Body.Close()
+
+	stage = "DecodeResponse"
+	result, err := decodeActivitiesMetricsListResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}
@@ -1308,6 +1638,158 @@ func (c *Client) sendArtefactsCreate(ctx context.Context, request *ArtefactsCrea
 	return result, nil
 }
 
+// ContextIDsList invokes ContextIDsList operation.
+//
+// Идентификаторы контекстов выбранные по тому же
+// принципу что и в ActivitiesMetricsList.
+// Обязательно указание либо `application_id`, либо `property`.
+// Допускаются оба параметра.
+//
+// GET /contexts/id
+func (c *Client) ContextIDsList(ctx context.Context, params ContextIDsListParams) (ContextIDsListRes, error) {
+	res, err := c.sendContextIDsList(ctx, params)
+	return res, err
+}
+
+func (c *Client) sendContextIDsList(ctx context.Context, params ContextIDsListParams) (res ContextIDsListRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("ContextIDsList"),
+		semconv.HTTPMethodKey.String("GET"),
+		semconv.HTTPRouteKey.String("/contexts/id"),
+	}
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(float64(elapsedDuration)/float64(time.Millisecond)), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, "ContextIDsList",
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/contexts/id"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeQueryParams"
+	q := uri.NewQueryEncoder()
+	{
+		// Encode "application_id" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "application_id",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.ApplicationID.Get(); ok {
+				return e.EncodeValue(conv.UUIDToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	{
+		// Encode "property" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "property",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			return e.EncodeArray(func(e uri.Encoder) error {
+				for i, item := range params.Property {
+					if err := func() error {
+						return e.EncodeValue(conv.StringToString(item))
+					}(); err != nil {
+						return errors.Wrapf(err, "[%d]", i)
+					}
+				}
+				return nil
+			})
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	u.RawQuery = q.Values().Encode()
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "GET", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:TalentOAuth"
+			switch err := c.securityTalentOAuth(ctx, "ContextIDsList", r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"TalentOAuth\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	defer resp.Body.Close()
+
+	stage = "DecodeResponse"
+	result, err := decodeContextIDsListResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
 // ContextTraditionID invokes ContextTraditionID operation.
 //
 // Традиция контекста.
@@ -1395,6 +1877,371 @@ func (c *Client) sendContextTraditionID(ctx context.Context, params ContextTradi
 
 	stage = "DecodeResponse"
 	result, err := decodeContextTraditionIDResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// ContextsImport invokes ContextsImport operation.
+//
+// Импортируемая таблица должна содержать колонки `id` и
+// `description`.
+// Содержащие в ячейках идентификатор (UUID) и описание
+// контекста соответственно.
+// Оставшиеся колонки таблицы будут восприняты как
+// свойства контекстов.
+// Тип значения для свойства определяется на основе
+// значений в ячейках колонки.
+// Если все значения можно интерпретировать как
+// числовые, то тип значения у свойства будет числовой.
+// Если хоть одно значение не приводится к числу, то тип
+// значения определяется как строковый.
+// В заголовках запроса так же необходимо указать ID
+// приложения с контекстами которого будет выполнятся
+// работа.
+//
+// POST /contexts/import
+func (c *Client) ContextsImport(ctx context.Context, request ContextsImportReq, params ContextsImportParams) (ContextsImportRes, error) {
+	res, err := c.sendContextsImport(ctx, request, params)
+	return res, err
+}
+
+func (c *Client) sendContextsImport(ctx context.Context, request ContextsImportReq, params ContextsImportParams) (res ContextsImportRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("ContextsImport"),
+		semconv.HTTPMethodKey.String("POST"),
+		semconv.HTTPRouteKey.String("/contexts/import"),
+	}
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(float64(elapsedDuration)/float64(time.Millisecond)), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, "ContextsImport",
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/contexts/import"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "POST", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+	if err := encodeContextsImportRequest(request, r); err != nil {
+		return res, errors.Wrap(err, "encode request")
+	}
+
+	stage = "EncodeHeaderParams"
+	h := uri.NewHeaderEncoder(r.Header)
+	{
+		cfg := uri.HeaderParameterEncodingConfig{
+			Name:    "X-Application",
+			Explode: false,
+		}
+		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+			return e.EncodeValue(conv.UUIDToString(params.XApplication))
+		}); err != nil {
+			return res, errors.Wrap(err, "encode header")
+		}
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:TalentOAuth"
+			switch err := c.securityTalentOAuth(ctx, "ContextsImport", r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"TalentOAuth\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	defer resp.Body.Close()
+
+	stage = "DecodeResponse"
+	result, err := decodeContextsImportResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// ContextsList invokes ContextsList operation.
+//
+// Список контекстов.
+//
+// GET /contexts
+func (c *Client) ContextsList(ctx context.Context, params ContextsListParams) (ContextsListRes, error) {
+	res, err := c.sendContextsList(ctx, params)
+	return res, err
+}
+
+func (c *Client) sendContextsList(ctx context.Context, params ContextsListParams) (res ContextsListRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("ContextsList"),
+		semconv.HTTPMethodKey.String("GET"),
+		semconv.HTTPRouteKey.String("/contexts"),
+	}
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(float64(elapsedDuration)/float64(time.Millisecond)), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, "ContextsList",
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/contexts"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeQueryParams"
+	q := uri.NewQueryEncoder()
+	{
+		// Encode "offset" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "offset",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.Offset.Get(); ok {
+				return e.EncodeValue(conv.Int32ToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	{
+		// Encode "limit" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "limit",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.Limit.Get(); ok {
+				return e.EncodeValue(conv.Int32ToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	{
+		// Encode "id" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "id",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			return e.EncodeArray(func(e uri.Encoder) error {
+				for i, item := range params.ID {
+					if err := func() error {
+						return e.EncodeValue(conv.UUIDToString(item))
+					}(); err != nil {
+						return errors.Wrapf(err, "[%d]", i)
+					}
+				}
+				return nil
+			})
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	{
+		// Encode "t_id" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "t_id",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			return e.EncodeArray(func(e uri.Encoder) error {
+				for i, item := range params.TID {
+					if err := func() error {
+						return e.EncodeValue(conv.Int32ToString(item))
+					}(); err != nil {
+						return errors.Wrapf(err, "[%d]", i)
+					}
+				}
+				return nil
+			})
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	{
+		// Encode "app_id" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "app_id",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			return e.EncodeArray(func(e uri.Encoder) error {
+				for i, item := range params.AppID {
+					if err := func() error {
+						return e.EncodeValue(conv.UUIDToString(item))
+					}(); err != nil {
+						return errors.Wrapf(err, "[%d]", i)
+					}
+				}
+				return nil
+			})
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	{
+		// Encode "desc" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "desc",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.Desc.Get(); ok {
+				return e.EncodeValue(conv.StringToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	u.RawQuery = q.Values().Encode()
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "GET", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:TalentOAuth"
+			switch err := c.securityTalentOAuth(ctx, "ContextsList", r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"TalentOAuth\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	defer resp.Body.Close()
+
+	stage = "DecodeResponse"
+	result, err := decodeContextsListResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}

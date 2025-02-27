@@ -41,3 +41,23 @@ func encodeArtefactsCreateRequest(
 		return nil
 	}
 }
+
+func encodeContextsImportRequest(
+	req ContextsImportReq,
+	r *http.Request,
+) error {
+	switch req := req.(type) {
+	case *ContextsImportReqTextCsv:
+		const contentType = "text/csv"
+		body := req
+		ht.SetBody(r, body, contentType)
+		return nil
+	case *ContextsImportReqTextTsv:
+		const contentType = "text/tsv"
+		body := req
+		ht.SetBody(r, body, contentType)
+		return nil
+	default:
+		return errors.Errorf("unexpected request type: %T", req)
+	}
+}

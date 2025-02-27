@@ -1,18 +1,29 @@
 openapi: 3.1.0
 info:
   title: Активности Берлоги
-  version: '0.2'
+  version: '0.5dev'
   description: |-
     Сервис активностей и артефактов игр Берлоги.
 
-    # Changelog
+    ## v0.5dev
 
-    ### WIP
+    - Добавлен [эндпоинт чтения списка идентификаторов контекстов](#operation/ContextIDsList) по фильтрам аналогичным [чтению активностей с метриками](#operation/ActivitiesMetricsList).
+    - Операция чтения активностей с метриками теперь позволяет указывать фильтры контекстов без ID приложения и vice versa.
+
+    ## v0.5
+
+    - Добавлены административные операции импорта и чтения списка контекстов.
+
+    ## v0.4
+
+    - Добавлен [эндпоинт чтения списка активностей с метриками](#operation/ActivitiesMetricsList).
+
+    ## v0.3
     - Добавлен [метод чтения баллов сгруппированных по традициям](#operation/ActivitiesScoresByTraditions).
     - Добавлен [эндпоинт чтения активности по ее ID](#operation/ActivityRead).
     - Добавлен [эндпоинт чтения ID традиции контекста](#operation/ContextTraditionID).
 
-    ### 0.2
+    ## v0.2
     [Для передачи активности](#operation/ActivitiesCreate) теперь обязательно нужно указывать версию приложения.
   contact:
     email: talent@kruzhok.org
@@ -61,9 +72,9 @@ paths:
       operationId: ActivitiesCreate
       summary: Запись активностей
       description: |-
-        Каждая из активностей опционально может иметь метриики и артефакт.
+        Каждая из активностей опционально может иметь метрики и артефакт.
 
-        Запись активностей доступа в коротком и расширенном форматах.
+        Запись активностей доступна в коротком и расширенном форматах.
 
         #### Короткий формат
 
@@ -103,6 +114,130 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+  /activities/metrics:
+    get:
+      operationId: ActivitiesMetricsList
+      summary: Список активностей с метриками
+      description: |-
+        Необходимо указать параметры выбора контекстов.
+        Это могут быть либо идентификаторы конкретных контекстов `context_ids`.
+        Либо набор фильтров `context_property` и/или ID приложения `application_id`.
+      security: [ServiceKey: [], TalentOAuth: []]
+      tags: [service]
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Count:
+              $ref: '#/components/headers/X-Count'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - activity_id
+                    - created_at
+                    - player_id
+                    - app_version
+                    - context_id
+                    - context_description
+                    - artefact_id
+                    - metrics
+                  properties:
+                    activity_id:
+                      $ref: '#/components/schemas/ActivityID'
+                    created_at:
+                      $ref: '#/components/schemas/ActivityCreatedAt'
+                    player_id:
+                      $ref: '#/components/schemas/PlayerID'
+                    app_version:
+                      $ref: '#/components/schemas/ActivityAppVersion'
+                    context_id:
+                      $ref: '#/components/schemas/ContextID'
+                    context_description:
+                      type: string
+                      description: Описание контекста
+                    artefact_id:
+                      allOf:
+                        - $ref: '#/components/schemas/ArtefactID'
+                        - nullable: true
+                    metrics:
+                      $ref: '#/components/schemas/ActivityMetrics'
+        '403':
+          description: Ошибка доступа
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      parameters:
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            format: int32
+            default: 0
+            minumum: 0
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            format: int32
+            default: 100
+            minumum: 1
+            maximum: 1000
+        - name: application_id
+          in: query
+          description: ID приложения для фильтрации контекстов.
+          schema:
+            type: string
+            format: uuid
+            description: Идентификатор приложения.
+        - name: context_property
+          in: query
+          description: |-
+            Свойства контекстов приложения.
+            Заполняются в формате имени и значения объединенных пробелом (кодируется как `+` или `%20`).
+            На каждое свойство допускается указывать до 5 значений.
+            Множественные значения учитываются как `допустим любой из вариантов`,
+            или же еще можно сказать что они объединяются логическим ИЛИ.
+            В запросе можноственные значения нужно разделять вертикальной чертой.
+            Пример фильтра по свойству `instrument` с тремя допустимыми значениями: `instrument+piano|guitar|drums`.
+          schema:
+            type: array
+            minItems: 1
+            maxItems: 3
+            items:
+              type: string
+        - name: context_ids
+          in: query
+          description: Список идентификаторов контекстов.
+          schema:
+            type: array
+            minItems: 1
+            maxItems: 20
+            items:
+              $ref: '#/components/schemas/ContextID'
+        - name: since
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: until
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: player_ids
+          in: query
+          description: Список игроков, активности которых попадут в выборку.
+          schema:
+            type: array
+            minItems: 1
+            maxItems: 50
+            items:
+              $ref: '#/components/schemas/PlayerID'
   /activities/scores:
     get:
       operationId: ActivitiesScores
@@ -240,11 +375,7 @@ paths:
                               format: float64
                               nullable: true
                       metrics:
-                        type: object
-                        description: Метрики активности.
-                        additionalProperties:
-                          type: number
-                          format: float64
+                        $ref: '#/components/schemas/ActivityMetrics'
         '404':
           description: Активность не найдена
           content:
@@ -265,7 +396,12 @@ paths:
       security: [BerlogaJWT: []]
       tags: [application]
       requestBody:
-        description: Содержимое артефакта. На данный момент поддерживаются только Cyberiada-GraphML.
+        description: |-
+          Содержимое артефакта. Поддерживаемые типы:
+
+            - application/cyberiada-graphml
+            - application/json
+            - application/xml
         required: true
         content:
           application/*:
@@ -386,6 +522,190 @@ paths:
                     name:
                       type: string
                       description: Название типа артефактов.
+  /contexts:
+    get:
+      operationId: ContextsList
+      summary: Список контекстов
+      security: [TalentOAuth: []]
+      tags: [admin]
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Count:
+              $ref: '#/components/headers/X-Count'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Context'
+        '403':
+          $ref: '#/components/responses/Error'
+          description: Пользователь не является администратором сервиса
+      parameters:
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            format: int32
+            default: 0
+            minumum: 0
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            format: int32
+            default: 20
+            minumum: 1
+            maximum: 100
+        - name: id
+          in: query
+          description: Фильтрация по ID контекстов.
+          schema:
+            type: array
+            items:
+              type: string
+              format: uuid
+        - name: t_id
+          in: query
+          description: Фильтрация по ID традиций.
+          schema:
+            type: array
+            items:
+              type: integer
+              format: int32
+        - name: app_id
+          in: query
+          description: Фильтрация по ID приложения.
+          schema:
+            type: array
+            items:
+              type: string
+              format: uuid
+        - name: desc
+          in: query
+          description: Фильтрация по вхождению подстроки в описание контекста.
+          schema:
+            type: string
+  /contexts/id:
+    get:
+      operationId: ContextIDsList
+      summary: Список идентификаторов контекстов
+      description: |-
+        Идентификаторы контекстов выбранные по тому же принципу что и в ActivitiesMetricsList.
+        Обязательно указание либо `application_id`, либо `property`. Допускаются оба параметра.
+      security: [TalentOAuth: []]
+      tags: [admin]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ContextID'
+        '403':
+          $ref: '#/components/responses/Error'
+          description: Пользователь не является администратором сервиса
+      parameters:
+        - name: application_id
+          in: query
+          description: Фильтрация по ID приложения.
+          schema:
+            type: string
+            format: uuid
+        - name: property
+          in: query
+          description: |-
+            Фильтрация контекстов по свойствам.
+
+            Свойство и его значение разделяются пробелом (`+` или `%20`).
+            В качестве значения допускается указание до пяти вариантов разделенных символом `|`.
+          schema:
+            type: array
+            minItems: 1
+            maxItems: 5
+            items:
+              type: string
+              description: |-
+                Фильтр по свойству.
+
+                Пример: `instrument+piano|guitar|drums`.
+  /contexts/import:
+    post:
+      operationId: ContextsImport
+      summary: Импорт контекстов со свойствами
+      description: |-
+        Импортируемая таблица должна содержать колонки `id` и `description`.
+        Содержащие в ячейках идентификатор (UUID) и описание контекста соответственно.
+
+        Оставшиеся колонки таблицы будут восприняты как свойства контекстов.
+        Тип значения для свойства определяется на основе значений в ячейках колонки.
+        Если все значения можно интерпретировать как числовые, то тип значения у свойства будет числовой.
+        Если хоть одно значение не приводится к числу, то тип значения определяется как строковый.
+
+        В заголовках запроса так же необходимо указать ID приложения с контекстами которого будет выполнятся работа.
+      security: [TalentOAuth: []]
+      tags: [admin]
+      requestBody:
+        required: true
+        description: Таблица контекстов для импорта.
+        content:
+          text/tsv:
+            schema:
+              type: string
+              format: binary
+          text/csv:
+            schema:
+              type: string
+              format: binary
+      responses:
+        '201':
+          description: Успешно выполнена запись
+        '400':
+          $ref: '#/components/responses/Error'
+          description: Ошибка чтения данных в соответствии с форматом запроса
+        '403':
+          $ref: '#/components/responses/Error'
+          description: Пользователь не является администратором сервиса
+        '422':
+          description: Переданы невалидные данные
+          content:
+            application/json:
+              schema:
+                type: array
+                description: Строки с ошибками валидации.
+                items:
+                  type: object
+                  required:
+                    - index
+                    - error
+                    - row
+                  properties:
+                    index:
+                      type: integer
+                      description: Индекс строки в таблице за исключением строки заголовка.
+                    row:
+                      type: object
+                      description: Данные импортируемые строкой таблицы.
+                      additionalProperties:
+                        type: string
+                    errors:
+                      type: array
+                      description: Ошибки валидации строки.
+                      items:
+                        type: string
+                        description: Текст ошибки.
+      parameters:
+        - name: X-Application
+          in: header
+          required: true
+          description: ID приложения, для которого импортируются контексты.
+          schema:
+            type: string
+            format: uuid
   /contexts/{context_id}/tradition-id:
     get:
       operationId: ContextTraditionID
@@ -431,9 +751,7 @@ components:
         id:
           $ref: '#/components/schemas/ActivityID'
         created_at:
-          type: string
-          format: date-time
-          description: Дата записи активности.
+          $ref: '#/components/schemas/ActivityCreatedAt'
         context_id:
           $ref: '#/components/schemas/ContextID'
         player_id:
@@ -464,6 +782,10 @@ components:
     ActivityAppVersion:
       type: string
       description: Версия приложения, в которой была произведена активность.
+    ActivityCreatedAt:
+      type: string
+      format: date-time
+      description: Дата записи активности.
     ActivityWrite:
       type: object
       description: Записываемая игровая активность.
@@ -480,7 +802,7 @@ components:
         metrics:
           type: object
           minProperties: 1
-          maxProperties: 10
+          maxProperties: 15
           additionalProperties:
             type: number
             format: float64
@@ -556,6 +878,12 @@ components:
                 type: string
                 format: url
                 description: Временный URL для загрузки данных артефакта методом PUT
+    ActivityMetrics:
+      type: object
+      description: Метрики активности.
+      additionalProperties:
+        type: number
+        format: float64
     ActivitiesScores:
       type: number
       format: float64
@@ -564,6 +892,29 @@ components:
       type: string
       format: uuid
       description: Идентификатор артефакта.
+    Context:
+      type: object
+      description: Контекст активностей
+      required:
+        - id
+        - application_id
+        - tradition_id
+        - activity_type_id
+        - description
+      properties:
+        id:
+          $ref: '#/components/schemas/ContextID'
+        application_id:
+          type: string
+          format: uuid
+        tradition_id:
+          type: integer
+          format: int32
+        activity_type_id:
+          type: integer
+          format: int32
+        description:
+          type: string
     ContextID:
       type: string
       format: uuid
@@ -580,6 +931,20 @@ components:
       type: string
       format: uuid
       description: Идентификатор игрока.
+  responses:
+    Error:
+      description: Ошибка
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  headers:
+    X-Count:
+      required: true
+      description: Общее кол-во объектов, входящих в выборку без учета пагинации.
+      schema:
+        type: integer
+        format: int64
   securitySchemes:
     BerlogaJWT:
       type: apiKey

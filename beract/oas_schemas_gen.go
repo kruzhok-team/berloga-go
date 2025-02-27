@@ -227,6 +227,126 @@ func NewActivityWriteObjectActivitiesCreateReq(v ActivityWriteObject) Activities
 	return s
 }
 
+// ActivitiesMetricsListOKHeaders wraps []ActivitiesMetricsListOKItem with response headers.
+type ActivitiesMetricsListOKHeaders struct {
+	XCount   int64
+	Response []ActivitiesMetricsListOKItem
+}
+
+// GetXCount returns the value of XCount.
+func (s *ActivitiesMetricsListOKHeaders) GetXCount() int64 {
+	return s.XCount
+}
+
+// GetResponse returns the value of Response.
+func (s *ActivitiesMetricsListOKHeaders) GetResponse() []ActivitiesMetricsListOKItem {
+	return s.Response
+}
+
+// SetXCount sets the value of XCount.
+func (s *ActivitiesMetricsListOKHeaders) SetXCount(val int64) {
+	s.XCount = val
+}
+
+// SetResponse sets the value of Response.
+func (s *ActivitiesMetricsListOKHeaders) SetResponse(val []ActivitiesMetricsListOKItem) {
+	s.Response = val
+}
+
+func (*ActivitiesMetricsListOKHeaders) activitiesMetricsListRes() {}
+
+type ActivitiesMetricsListOKItem struct {
+	ActivityID ActivityID         `json:"activity_id"`
+	CreatedAt  ActivityCreatedAt  `json:"created_at"`
+	PlayerID   PlayerID           `json:"player_id"`
+	AppVersion ActivityAppVersion `json:"app_version"`
+	ContextID  ContextID          `json:"context_id"`
+	// Описание контекста.
+	ContextDescription string          `json:"context_description"`
+	ArtefactID         NilUUID         `json:"artefact_id"`
+	Metrics            ActivityMetrics `json:"metrics"`
+}
+
+// GetActivityID returns the value of ActivityID.
+func (s *ActivitiesMetricsListOKItem) GetActivityID() ActivityID {
+	return s.ActivityID
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *ActivitiesMetricsListOKItem) GetCreatedAt() ActivityCreatedAt {
+	return s.CreatedAt
+}
+
+// GetPlayerID returns the value of PlayerID.
+func (s *ActivitiesMetricsListOKItem) GetPlayerID() PlayerID {
+	return s.PlayerID
+}
+
+// GetAppVersion returns the value of AppVersion.
+func (s *ActivitiesMetricsListOKItem) GetAppVersion() ActivityAppVersion {
+	return s.AppVersion
+}
+
+// GetContextID returns the value of ContextID.
+func (s *ActivitiesMetricsListOKItem) GetContextID() ContextID {
+	return s.ContextID
+}
+
+// GetContextDescription returns the value of ContextDescription.
+func (s *ActivitiesMetricsListOKItem) GetContextDescription() string {
+	return s.ContextDescription
+}
+
+// GetArtefactID returns the value of ArtefactID.
+func (s *ActivitiesMetricsListOKItem) GetArtefactID() NilUUID {
+	return s.ArtefactID
+}
+
+// GetMetrics returns the value of Metrics.
+func (s *ActivitiesMetricsListOKItem) GetMetrics() ActivityMetrics {
+	return s.Metrics
+}
+
+// SetActivityID sets the value of ActivityID.
+func (s *ActivitiesMetricsListOKItem) SetActivityID(val ActivityID) {
+	s.ActivityID = val
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *ActivitiesMetricsListOKItem) SetCreatedAt(val ActivityCreatedAt) {
+	s.CreatedAt = val
+}
+
+// SetPlayerID sets the value of PlayerID.
+func (s *ActivitiesMetricsListOKItem) SetPlayerID(val PlayerID) {
+	s.PlayerID = val
+}
+
+// SetAppVersion sets the value of AppVersion.
+func (s *ActivitiesMetricsListOKItem) SetAppVersion(val ActivityAppVersion) {
+	s.AppVersion = val
+}
+
+// SetContextID sets the value of ContextID.
+func (s *ActivitiesMetricsListOKItem) SetContextID(val ContextID) {
+	s.ContextID = val
+}
+
+// SetContextDescription sets the value of ContextDescription.
+func (s *ActivitiesMetricsListOKItem) SetContextDescription(val string) {
+	s.ContextDescription = val
+}
+
+// SetArtefactID sets the value of ArtefactID.
+func (s *ActivitiesMetricsListOKItem) SetArtefactID(val NilUUID) {
+	s.ArtefactID = val
+}
+
+// SetMetrics sets the value of Metrics.
+func (s *ActivitiesMetricsListOKItem) SetMetrics(val ActivityMetrics) {
+	s.Metrics = val
+}
+
 type ActivitiesScores float64
 
 func (*ActivitiesScores) activitiesScoresRes() {}
@@ -272,9 +392,8 @@ func (*ActivitiesScoresUnprocessableEntity) activitiesScoresRes() {}
 // Сохраненная игровая активность.
 // Ref: #/components/schemas/Activity
 type Activity struct {
-	ID ActivityID `json:"id"`
-	// Дата записи активности.
-	CreatedAt  time.Time             `json:"created_at"`
+	ID         ActivityID            `json:"id"`
+	CreatedAt  ActivityCreatedAt     `json:"created_at"`
 	ContextID  ContextID             `json:"context_id"`
 	PlayerID   PlayerID              `json:"player_id"`
 	AppVersion ActivityAppVersion    `json:"app_version"`
@@ -289,7 +408,7 @@ func (s *Activity) GetID() ActivityID {
 }
 
 // GetCreatedAt returns the value of CreatedAt.
-func (s *Activity) GetCreatedAt() time.Time {
+func (s *Activity) GetCreatedAt() ActivityCreatedAt {
 	return s.CreatedAt
 }
 
@@ -329,7 +448,7 @@ func (s *Activity) SetID(val ActivityID) {
 }
 
 // SetCreatedAt sets the value of CreatedAt.
-func (s *Activity) SetCreatedAt(val time.Time) {
+func (s *Activity) SetCreatedAt(val ActivityCreatedAt) {
 	s.CreatedAt = val
 }
 
@@ -365,7 +484,22 @@ func (s *Activity) SetQuarantine(val NilActivityQuarantine) {
 
 type ActivityAppVersion string
 
+type ActivityCreatedAt time.Time
+
 type ActivityID uuid.UUID
+
+// Метрики активности.
+// Ref: #/components/schemas/ActivityMetrics
+type ActivityMetrics map[string]float64
+
+func (s *ActivityMetrics) init() ActivityMetrics {
+	m := *s
+	if m == nil {
+		m = map[string]float64{}
+		*s = m
+	}
+	return m
+}
 
 type ActivityQuarantine string
 
@@ -410,9 +544,8 @@ func (s *ActivityQuarantine) UnmarshalText(data []byte) error {
 
 // Merged schema.
 type ActivityReadOK struct {
-	ID ActivityID `json:"id"`
-	// Дата записи активности.
-	CreatedAt  time.Time                   `json:"created_at"`
+	ID         ActivityID                  `json:"id"`
+	CreatedAt  ActivityCreatedAt           `json:"created_at"`
 	ContextID  ContextID                   `json:"context_id"`
 	PlayerID   PlayerID                    `json:"player_id"`
 	AppVersion ActivityAppVersion          `json:"app_version"`
@@ -425,8 +558,7 @@ type ActivityReadOK struct {
 	TraditionID int32 `json:"tradition_id"`
 	// Свойства контекста активности.
 	ContextProperties ActivityReadOKContextProperties `json:"context_properties"`
-	// Метрики активности.
-	Metrics ActivityReadOKMetrics `json:"metrics"`
+	Metrics           ActivityMetrics                 `json:"metrics"`
 }
 
 // GetID returns the value of ID.
@@ -435,7 +567,7 @@ func (s *ActivityReadOK) GetID() ActivityID {
 }
 
 // GetCreatedAt returns the value of CreatedAt.
-func (s *ActivityReadOK) GetCreatedAt() time.Time {
+func (s *ActivityReadOK) GetCreatedAt() ActivityCreatedAt {
 	return s.CreatedAt
 }
 
@@ -485,7 +617,7 @@ func (s *ActivityReadOK) GetContextProperties() ActivityReadOKContextProperties 
 }
 
 // GetMetrics returns the value of Metrics.
-func (s *ActivityReadOK) GetMetrics() ActivityReadOKMetrics {
+func (s *ActivityReadOK) GetMetrics() ActivityMetrics {
 	return s.Metrics
 }
 
@@ -495,7 +627,7 @@ func (s *ActivityReadOK) SetID(val ActivityID) {
 }
 
 // SetCreatedAt sets the value of CreatedAt.
-func (s *ActivityReadOK) SetCreatedAt(val time.Time) {
+func (s *ActivityReadOK) SetCreatedAt(val ActivityCreatedAt) {
 	s.CreatedAt = val
 }
 
@@ -545,7 +677,7 @@ func (s *ActivityReadOK) SetContextProperties(val ActivityReadOKContextPropertie
 }
 
 // SetMetrics sets the value of Metrics.
-func (s *ActivityReadOK) SetMetrics(val ActivityReadOKMetrics) {
+func (s *ActivityReadOK) SetMetrics(val ActivityMetrics) {
 	s.Metrics = val
 }
 
@@ -586,18 +718,6 @@ func (s *ActivityReadOKContextPropertiesItem) SetValueString(val NilString) {
 // SetValueNumber sets the value of ValueNumber.
 func (s *ActivityReadOKContextPropertiesItem) SetValueNumber(val NilFloat64) {
 	s.ValueNumber = val
-}
-
-// Метрики активности.
-type ActivityReadOKMetrics map[string]float64
-
-func (s *ActivityReadOKMetrics) init() ActivityReadOKMetrics {
-	m := *s
-	if m == nil {
-		m = map[string]float64{}
-		*s = m
-	}
-	return m
 }
 
 type ActivityReadOKQuarantine string
@@ -895,11 +1015,204 @@ func (s *BerlogaJWT) SetAPIKey(val string) {
 	s.APIKey = val
 }
 
+// Контекст активностей.
+// Ref: #/components/schemas/Context
+type Context struct {
+	ID             ContextID `json:"id"`
+	ApplicationID  uuid.UUID `json:"application_id"`
+	TraditionID    int32     `json:"tradition_id"`
+	ActivityTypeID int32     `json:"activity_type_id"`
+	Description    string    `json:"description"`
+}
+
+// GetID returns the value of ID.
+func (s *Context) GetID() ContextID {
+	return s.ID
+}
+
+// GetApplicationID returns the value of ApplicationID.
+func (s *Context) GetApplicationID() uuid.UUID {
+	return s.ApplicationID
+}
+
+// GetTraditionID returns the value of TraditionID.
+func (s *Context) GetTraditionID() int32 {
+	return s.TraditionID
+}
+
+// GetActivityTypeID returns the value of ActivityTypeID.
+func (s *Context) GetActivityTypeID() int32 {
+	return s.ActivityTypeID
+}
+
+// GetDescription returns the value of Description.
+func (s *Context) GetDescription() string {
+	return s.Description
+}
+
+// SetID sets the value of ID.
+func (s *Context) SetID(val ContextID) {
+	s.ID = val
+}
+
+// SetApplicationID sets the value of ApplicationID.
+func (s *Context) SetApplicationID(val uuid.UUID) {
+	s.ApplicationID = val
+}
+
+// SetTraditionID sets the value of TraditionID.
+func (s *Context) SetTraditionID(val int32) {
+	s.TraditionID = val
+}
+
+// SetActivityTypeID sets the value of ActivityTypeID.
+func (s *Context) SetActivityTypeID(val int32) {
+	s.ActivityTypeID = val
+}
+
+// SetDescription sets the value of Description.
+func (s *Context) SetDescription(val string) {
+	s.Description = val
+}
+
 type ContextID uuid.UUID
+
+type ContextIDsListOKApplicationJSON []ContextID
+
+func (*ContextIDsListOKApplicationJSON) contextIDsListRes() {}
 
 type ContextTraditionIDOKApplicationJSON int32
 
 func (*ContextTraditionIDOKApplicationJSON) contextTraditionIDRes() {}
+
+type ContextsImportBadRequest Error
+
+func (*ContextsImportBadRequest) contextsImportRes() {}
+
+// ContextsImportCreated is response for ContextsImport operation.
+type ContextsImportCreated struct{}
+
+func (*ContextsImportCreated) contextsImportRes() {}
+
+type ContextsImportForbidden Error
+
+func (*ContextsImportForbidden) contextsImportRes() {}
+
+type ContextsImportReqTextCsv struct {
+	Data io.Reader
+}
+
+// Read reads data from the Data reader.
+//
+// Kept to satisfy the io.Reader interface.
+func (s ContextsImportReqTextCsv) Read(p []byte) (n int, err error) {
+	if s.Data == nil {
+		return 0, io.EOF
+	}
+	return s.Data.Read(p)
+}
+
+func (*ContextsImportReqTextCsv) contextsImportReq() {}
+
+type ContextsImportReqTextTsv struct {
+	Data io.Reader
+}
+
+// Read reads data from the Data reader.
+//
+// Kept to satisfy the io.Reader interface.
+func (s ContextsImportReqTextTsv) Read(p []byte) (n int, err error) {
+	if s.Data == nil {
+		return 0, io.EOF
+	}
+	return s.Data.Read(p)
+}
+
+func (*ContextsImportReqTextTsv) contextsImportReq() {}
+
+type ContextsImportUnprocessableEntityApplicationJSON []ContextsImportUnprocessableEntityItem
+
+func (*ContextsImportUnprocessableEntityApplicationJSON) contextsImportRes() {}
+
+type ContextsImportUnprocessableEntityItem struct {
+	// Индекс строки в таблице за исключением строки
+	// заголовка.
+	Index int `json:"index"`
+	// Данные импортируемые строкой таблицы.
+	Row ContextsImportUnprocessableEntityItemRow `json:"row"`
+	// Ошибки валидации строки.
+	Errors []string `json:"errors"`
+}
+
+// GetIndex returns the value of Index.
+func (s *ContextsImportUnprocessableEntityItem) GetIndex() int {
+	return s.Index
+}
+
+// GetRow returns the value of Row.
+func (s *ContextsImportUnprocessableEntityItem) GetRow() ContextsImportUnprocessableEntityItemRow {
+	return s.Row
+}
+
+// GetErrors returns the value of Errors.
+func (s *ContextsImportUnprocessableEntityItem) GetErrors() []string {
+	return s.Errors
+}
+
+// SetIndex sets the value of Index.
+func (s *ContextsImportUnprocessableEntityItem) SetIndex(val int) {
+	s.Index = val
+}
+
+// SetRow sets the value of Row.
+func (s *ContextsImportUnprocessableEntityItem) SetRow(val ContextsImportUnprocessableEntityItemRow) {
+	s.Row = val
+}
+
+// SetErrors sets the value of Errors.
+func (s *ContextsImportUnprocessableEntityItem) SetErrors(val []string) {
+	s.Errors = val
+}
+
+// Данные импортируемые строкой таблицы.
+type ContextsImportUnprocessableEntityItemRow map[string]string
+
+func (s *ContextsImportUnprocessableEntityItemRow) init() ContextsImportUnprocessableEntityItemRow {
+	m := *s
+	if m == nil {
+		m = map[string]string{}
+		*s = m
+	}
+	return m
+}
+
+// ContextsListOKHeaders wraps []Context with response headers.
+type ContextsListOKHeaders struct {
+	XCount   int64
+	Response []Context
+}
+
+// GetXCount returns the value of XCount.
+func (s *ContextsListOKHeaders) GetXCount() int64 {
+	return s.XCount
+}
+
+// GetResponse returns the value of Response.
+func (s *ContextsListOKHeaders) GetResponse() []Context {
+	return s.Response
+}
+
+// SetXCount sets the value of XCount.
+func (s *ContextsListOKHeaders) SetXCount(val int64) {
+	s.XCount = val
+}
+
+// SetResponse sets the value of Response.
+func (s *ContextsListOKHeaders) SetResponse(val []Context) {
+	s.Response = val
+}
+
+func (*ContextsListOKHeaders) contextsListRes() {}
 
 // Ref: #/components/schemas/Error
 type Error struct {
@@ -918,10 +1231,13 @@ func (s *Error) SetErrorMessage(val string) {
 }
 
 func (*Error) activitiesCreateRes()             {}
+func (*Error) activitiesMetricsListRes()        {}
 func (*Error) activitiesScoresByTraditionsRes() {}
 func (*Error) activityReadRes()                 {}
 func (*Error) artefactsCreateRes()              {}
+func (*Error) contextIDsListRes()               {}
 func (*Error) contextTraditionIDRes()           {}
+func (*Error) contextsListRes()                 {}
 
 // NewNilActivityQuarantine returns new NilActivityQuarantine with value set to v.
 func NewNilActivityQuarantine(v ActivityQuarantine) NilActivityQuarantine {
@@ -1285,6 +1601,52 @@ func (o OptArtefactID) Or(d ArtefactID) ArtefactID {
 	return d
 }
 
+// NewOptDateTime returns new OptDateTime with value set to v.
+func NewOptDateTime(v time.Time) OptDateTime {
+	return OptDateTime{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptDateTime is optional time.Time.
+type OptDateTime struct {
+	Value time.Time
+	Set   bool
+}
+
+// IsSet returns true if OptDateTime was set.
+func (o OptDateTime) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptDateTime) Reset() {
+	var v time.Time
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptDateTime) SetTo(v time.Time) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptDateTime) Get() (v time.Time, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptDateTime) Or(d time.Time) time.Time {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptInt32 returns new OptInt32 with value set to v.
 func NewOptInt32(v int32) OptInt32 {
 	return OptInt32{
@@ -1331,6 +1693,98 @@ func (o OptInt32) Or(d int32) int32 {
 	return d
 }
 
+// NewOptString returns new OptString with value set to v.
+func NewOptString(v string) OptString {
+	return OptString{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptString is optional string.
+type OptString struct {
+	Value string
+	Set   bool
+}
+
+// IsSet returns true if OptString was set.
+func (o OptString) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptString) Reset() {
+	var v string
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptString) SetTo(v string) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptString) Get() (v string, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptString) Or(d string) string {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptUUID returns new OptUUID with value set to v.
+func NewOptUUID(v uuid.UUID) OptUUID {
+	return OptUUID{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptUUID is optional uuid.UUID.
+type OptUUID struct {
+	Value uuid.UUID
+	Set   bool
+}
+
+// IsSet returns true if OptUUID was set.
+func (o OptUUID) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptUUID) Reset() {
+	var v uuid.UUID
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptUUID) SetTo(v uuid.UUID) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptUUID) Get() (v uuid.UUID, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptUUID) Or(d uuid.UUID) uuid.UUID {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 type PlayerID uuid.UUID
 
 type ServiceKey struct {
@@ -1345,4 +1799,18 @@ func (s *ServiceKey) GetAPIKey() string {
 // SetAPIKey sets the value of APIKey.
 func (s *ServiceKey) SetAPIKey(val string) {
 	s.APIKey = val
+}
+
+type TalentOAuth struct {
+	Token string
+}
+
+// GetToken returns the value of Token.
+func (s *TalentOAuth) GetToken() string {
+	return s.Token
+}
+
+// SetToken sets the value of Token.
+func (s *TalentOAuth) SetToken(val string) {
+	s.Token = val
 }

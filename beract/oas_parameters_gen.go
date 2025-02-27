@@ -12,6 +12,34 @@ type ActivitiesListParams struct {
 	Ids []uuid.UUID
 }
 
+// ActivitiesMetricsListParams is parameters of ActivitiesMetricsList operation.
+type ActivitiesMetricsListParams struct {
+	Offset OptInt32
+	Limit  OptInt32
+	// ID приложения для фильтрации контекстов.
+	ApplicationID OptUUID
+	// Свойства контекстов приложения.
+	// Заполняются в формате имени и значения объединенных
+	// пробелом (кодируется как `+` или `%20`).
+	// На каждое свойство допускается указывать до 5
+	// значений.
+	// Множественные значения учитываются как `допустим
+	// любой из вариантов`,
+	// или же еще можно сказать что они объединяются
+	// логическим ИЛИ.
+	// В запросе можноственные значения нужно разделять
+	// вертикальной чертой.
+	// Пример фильтра по свойству `instrument` с тремя
+	// допустимыми значениями: `instrument+piano|guitar|drums`.
+	ContextProperty []string
+	// Список идентификаторов контекстов.
+	ContextIds []ContextID
+	Since      OptDateTime
+	Until      OptDateTime
+	// Список игроков, активности которых попадут в выборку.
+	PlayerIds []PlayerID
+}
+
 // ActivitiesScoresParams is parameters of ActivitiesScores operation.
 type ActivitiesScoresParams struct {
 	// Идентификатор традиции.
@@ -53,7 +81,40 @@ type ArtefactsCreateParams struct {
 	XChecksum string
 }
 
+// ContextIDsListParams is parameters of ContextIDsList operation.
+type ContextIDsListParams struct {
+	// Фильтрация по ID приложения.
+	ApplicationID OptUUID
+	// Фильтрация контекстов по свойствам.
+	// Свойство и его значение разделяются пробелом (`+` или
+	// `%20`).
+	// В качестве значения допускается указание до пяти
+	// вариантов разделенных символом `|`.
+	Property []string
+}
+
 // ContextTraditionIDParams is parameters of ContextTraditionID operation.
 type ContextTraditionIDParams struct {
 	ContextID ContextID
+}
+
+// ContextsImportParams is parameters of ContextsImport operation.
+type ContextsImportParams struct {
+	// ID приложения, для которого импортируются контексты.
+	XApplication uuid.UUID
+}
+
+// ContextsListParams is parameters of ContextsList operation.
+type ContextsListParams struct {
+	Offset OptInt32
+	Limit  OptInt32
+	// Фильтрация по ID контекстов.
+	ID []uuid.UUID
+	// Фильтрация по ID традиций.
+	TID []int32
+	// Фильтрация по ID приложения.
+	AppID []uuid.UUID
+	// Фильтрация по вхождению подстроки в описание
+	// контекста.
+	Desc OptString
 }
