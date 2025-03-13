@@ -9,6 +9,7 @@ import (
 	"github.com/kruzhok-team/berloga-go/berauth"
 )
 
+// SecuritySource объявляет общее API для реализаций SecuritySource конкретных клиентов.
 type SecuritySource interface {
 	TalentOAuth(ctx context.Context, operationName string) (string, error)
 	BerlogaJWT(ctx context.Context, operationName string) (string, error)
