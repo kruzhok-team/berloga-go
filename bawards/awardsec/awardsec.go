@@ -7,25 +7,25 @@ import (
 	"github.com/kruzhok-team/berloga-go/secsrc"
 )
 
-func New(src secsrc.SecuritySource) *SecuritySource {
-	return &SecuritySource{Src: src}
+func New(src secsrc.SecuritySource) *securitySource {
+	return &securitySource{src: src}
 }
 
 // Реализация bawards.SecuritySource являющаяся враппером для secsrc.SecuritySource.
-type SecuritySource struct {
-	Src secsrc.SecuritySource
+type securitySource struct {
+	src secsrc.SecuritySource
 }
 
 // TalentOAuth implements bawards.SecuritySource.
-func (s *SecuritySource) TalentOAuth(ctx context.Context, operationName string) (bawards.TalentOAuth, error) {
-	tok, err := s.Src.TalentOAuth(ctx, operationName)
+func (s *securitySource) TalentOAuth(ctx context.Context, operationName string) (bawards.TalentOAuth, error) {
+	tok, err := s.src.TalentOAuth(ctx, operationName)
 	return bawards.TalentOAuth{Token: tok}, err
 }
 
 // BerlogaJWT implements bawards.SecuritySource
-func (s *SecuritySource) BerlogaJWT(ctx context.Context, operationName string) (bawards.BerlogaJWT, error) {
-	tok, err := s.Src.BerlogaJWT(ctx, operationName)
+func (s *securitySource) BerlogaJWT(ctx context.Context, operationName string) (bawards.BerlogaJWT, error) {
+	tok, err := s.src.BerlogaJWT(ctx, operationName)
 	return bawards.BerlogaJWT{APIKey: tok}, err
 }
 
-var _ bawards.SecuritySource = (*SecuritySource)(nil)
+var _ bawards.SecuritySource = (*securitySource)(nil)
