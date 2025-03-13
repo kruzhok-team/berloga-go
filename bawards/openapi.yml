@@ -1,0 +1,1918 @@
+openapi: 3.1.0
+info:
+  title: Награды Берлоги
+  version: '0.4-dev'
+  description: |-
+    Сервис наград за прогресс по традициям и инструментам Берлоги.
+
+    Фильтры в эндпоинтах со списками объектов, при указывании нескольких параметров, объединяются оператором «И». В иных случаях - это указано в описании. Так как фильтры применяются все вместе, то можно собрать комбинацию под которую не попдает ни один объект. Фильтры по традициям и инструментам нужно использовать по отдельности.
+  contact:
+    email: talent@kruzhok.org
+servers:
+  - url: https://talent.kruzhok.org/berloga-awards
+    description: Production Server
+  - url: https://talent.test.kruzhok.org/berloga-awards
+    description: Development Server
+tags:
+  - name: auth
+    x-displayName: Аутентификация
+    description: |-
+      ## TalentOAuth
+
+      Аутентификация токеном TalentOAuth пользователем Таланта.
+      Передается в заголовке `Authorization: Bearer` в формате JWT.
+
+      ## BerlogaJWT
+
+      Аутентификация [токеном игрока Берлоги](/berloga-idp/docs/#tag/application/operation/IssueToken).
+      Передается в заголовке `Authorization`.
+
+  - name: offset
+    x-displayName: Пагинация
+    description: |-
+      Пагинация может быть представлена как параметром `offset`, так и параметром `after`. Параметр `offset` позволяет указать кол-во объектов для пропуска из читаемой выборки. В `after` указывается идентификатор, объекты с идентификатором равном или менее указанному будут исключены из выборки.
+
+      > Предпочтительно, когда есть возможность, использовать `after`. Так же надо учитывать, что допустимое значение для `offset` имеет ограничения.
+    x-traitTag: true
+
+  - name: traditions
+    x-displayName: Традиции
+    description: Традиции Берлоги. Прогресс по ним растет за счет [игровых активностей](/berloga-activities/docs/).
+
+  - name: instruments
+    x-displayName: Инструменты
+    description: Инструменты Берлоги. Прогресс по ним зависит от баллов [компетенций Конструктора Калькуляторов](https://calcon.kruzhok.org/api/swagger/index.html#/competences/get_api_competences) пользователя Таланта, авторизованного для игрока.
+
+  - name: progress
+    x-displayName: Прогресс пользователя
+    description: Прогресс пользователя по [традициям](#tag/traditions) и [инструментам](#tag/instruments).
+
+  - name: awards
+    x-displayName: Награды
+    description: Награды, выдаваемые за прогресс по [традициям](#tag/traditions) и [инструментам](#tag/instruments).
+
+  - name: userawards
+    x-displayName: Полученные награды
+    description: Полученные пользователем [награды](#tag/awards) за достижение пороговых баллов, сохраненных в прогрессе пользователя.
+
+  - name: challenges
+    x-displayName: Испытания
+    description: Испытания для [игровых активностей](/berloga-activities/docs/).
+
+  - name: complexch
+    x-displayName: Агрегатные испытания
+    description: |-
+      Агрегатные (они же комплексные) испытания, вычисляются для групп [игровых активностей](/berloga-activities/docs/).
+
+      Каждое такое испытание состоит из одной или нескольких целей.
+      Цели можно воспринимать как окно вычисления результата,
+      отличающееся от других целей испытания в первую очередь набором активностей.
+      В результате вычисления цели ожидается получение вещественного числа.
+      Это число сравнивается с пороговым баллом цели для определения ее выполнения.
+
+      Для вычисления балла цели используется объявленная для нее формула.
+      Формула записывается одной строкой из последовательности арифметических операций.
+
+      Формат записи формул (по [расширенной форме Бэкуса - Наура](https://ru.wikipedia.org/wiki/Расширенная_форма_Бэкуса_—_Наура)):
+
+      ```
+      Формула = Операнд, {Операция}
+
+      Операция = Оператор, {ОпцПробел}, Операнд
+      Оператор = "+" | "-" | "*" | "/"
+      ОпцПробел = " " | "\t"
+      Операнд = ГруппаОпераций | Число | ИмяПеременной | АгрегатнаяФункция
+
+      ГруппаОпераций = "(", {ОпцПробел}, Операнд, {{ОпцПробел}, Операция}, {ОпцПробел}, ")"
+
+      Число = ["-"], Цифра, {Цифра}, [".", Цифра, {Цифра}]
+      Цифра = "0" | ... | "9"
+
+      ИмяПеременной = ПростоеИмя | Префикс, "|", ПростоеИмя | Префикс, "|", РасширенноеИмя
+      Префикс = "a" | "c" | "m"
+      ПростоеИмя = ЛатБуква, {ЛатБуква | Цифра | "." | "_"}
+      РасширенноеИмя = "[", СимволРасширенногоИмени, {СимволРасширенногоИмени}, "]"
+      СимволРасширенногоИмени = ЛатБуква | Цифра | "." | "_" | " " | "\t" | "+" | "-" | "*" | "/"
+
+      АгрегатнаяФункция = ИмяФункции, "{", РасширенноеИмя, "}"
+      ИмяФункции = "sum" | "min" | "max" | "avg" | "mean" | "count"
+      ```
+
+      Префикс в имени переменной указывает на то, к чему она относится:
+
+        - `a` - свойства активности
+        - `m` - метрики активности
+        - `c` - числовые свойства контекста, к которому относится активность
+
+      Переменные без префиксов указывают не на активности и их свойства, а на результаты целей.
+      Соответствующие имена должны быть заполнены в целях, а использовать их можно только в формуле испытания.
+
+      Пример формулы цели:
+
+      ```
+      (( (max{m|duration} / count{*}) / mean{m|health} ) * 100) + (max{c|level} * 10)
+      ```
+
+      Пример формулы испытания (с двумя целями, объявляющими указанные имена переменных):
+
+      ```
+      match_rating + (max_bonus_level * 10)
+      ```
+
+      Для целей назначаются агрегатные формулы, но и для самого испытания можно назначить формулу.
+      Это будет итоговая формула, вычисляющая финальный балл на основе результатов вычислений в целях.
+      В итоговой формуле нельзя использовать агрегатные функции.
+      В качестве имен доступны только имена переменных указанные в целях.
+      Итоговая формула опциональна только при наличии одной цели,
+      иначе - для публикации испытания потребуется ее заполнить.
+
+      Перед записью формулы можно выполнить ее валидацию [отдельной операцией](#tag/complexch/operation/FormulaParse).
+
+paths:
+  /awards:
+    get:
+      operationId: AwardsList
+      summary: Список наград
+      description: Список наград, выдаваемых за достижение уровеней по традициям и инструментам.
+      tags: [awards]
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Count:
+              $ref: '#/components/headers/X-Count'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  allOf:
+                    - $ref: '#/components/schemas/Award'
+                    - type: object
+                      properties:
+                        applications:
+                          type: array
+                          description: Приложения, в которых реализована награда. Возвращается только при указании параметра `with_applications`.
+                          items:
+                            $ref: '#/components/schemas/ApplicationID'
+      parameters:
+        - $ref: '#/components/parameters/offset'
+        - $ref: '#/components/parameters/limit'
+        - in: query
+          name: tradition_id
+          description: Фильтрация по ID традиции.
+          schema:
+            type: integer
+            format: int32
+        - in: query
+          name: instrument_id
+          description: Фильтрация по ID инструмента.
+          schema:
+            type: integer
+            format: int32
+        - name: order_by
+          in: query
+          description: Порядок сортировки
+          schema:
+            type: string
+            default: award_level
+            enum:
+              - award_level
+              - created_at_desc
+              - created_at_asc
+              - updated_at_desc
+              - updated_at_asc
+              - tradition_id
+              - instrument_id
+        - name: with_applications
+          in: query
+          description: Включить в ответ свойство `applications`.
+          schema:
+            type: boolean
+            default: false
+
+  /challenges:
+    get:
+      operationId: ChallengesList
+      summary: Список испытаний
+      tags: [challenges]
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Count:
+              $ref: '#/components/headers/X-Count'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - id
+                    - description
+                    - icon_url
+                    - applications
+                  properties:
+                    id:
+                      type: integer
+                      format: int32
+                    description:
+                      type: string
+                    icon_url:
+                      type: string
+                      description: URL иконки-изображения испытания.
+                    applications:
+                      type: array
+                      description: Приложения, активности из которых участвуют в испытании.
+                      items:
+                        $ref: '#/components/schemas/ApplicationID'
+      parameters:
+        - $ref: '#/components/parameters/offset'
+        - $ref: '#/components/parameters/limit'
+
+  /challenges/passed:
+    get:
+      operationId: PassedChallengesList
+      summary: Список пройденных испытаний
+      tags: [challenges]
+      description: |-
+        Параметры `player_id` и `talent_id` взаимоисключаемы.
+        При аутентификации токеном `TalentOAuth`, предустанавливается параметр `talent_id`.
+        При аутентификации токеном `BerlogaJWT`, предустанавливается параметр `player_id`.
+      security: [TalentOAuth: [], BerlogaJWT: [], {}]
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Count:
+              $ref: '#/components/headers/X-Count'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - challenge_id
+                    - passed_at
+                  properties:
+                    challenge_id:
+                      type: integer
+                      format: int32
+                    passed_at:
+                      type: string
+                      format: date-time
+                      description: Дата прохождения испытания
+      parameters:
+        - name: player_id
+          in: query
+          required: false
+          description: |-
+            Испытания пройденные игроками, объединенными пользователем, привязанным к указанному игроку.
+            При отсутствии привязанного пользователя, возвращаются испытания указанного игрока.
+          schema:
+            type: string
+            format: uuid
+        - name: talent_id
+          in: query
+          required: false
+          description: Испытания пройденные игроками указанного пользователя.
+          schema:
+            type: integer
+            format: int32
+        - $ref: '#/components/parameters/offset'
+        - $ref: '#/components/parameters/limit'
+
+  /complexch:
+    get:
+      operationId: ComplexChallengesList
+      summary: Список агрегатных испытаний
+      tags: [complexch]
+      parameters:
+        - $ref: '#/components/parameters/after_32'
+        - $ref: '#/components/parameters/offset'
+        - $ref: '#/components/parameters/limit'
+        - name: public
+          in: query
+          description: Фильтр по статусу опубликованности
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Ok
+          headers:
+            X-Count:
+              $ref: '#/components/headers/X-Count'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ComplexChallengeBase'
+    post:
+      operationId: ComplexChallengeCreate
+      summary: Создание агрегатного испытания
+      security: [TalentOAuth: []]
+      tags: [complexch]
+      description: "> Достуно только для администрации."
+      requestBody:
+        $ref: '#/components/requestBodies/ComplexChallengeCreateRequest'
+      responses:
+        '201':
+          description: Создано
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplexChallengeBase'
+        '403':
+          $ref: '#/components/responses/AdminAccessRequired'
+
+  /complexch/{complexch_id}:
+    parameters:
+      - $ref: '#/components/parameters/complexch_id'
+    get:
+      operationId: ComplexChallengeRead
+      summary: Чтение агрегатного испытания
+      security: [TalentOAuth: []]
+      tags: [complexch]
+      description: |-
+        Наличие полей `score_formula` и `required_score` зависит от наличия административных прав.
+
+        Для массива `goals` так же требуются административные права, а так же явный запрос этого свойства.
+      parameters:
+        - name: with_goals
+          in: query
+          description: |-
+            Вернуть объекты со свойством `goals`.
+            Доступно только при наличии административных прав.
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplexChallengeRead'
+        '403':
+          $ref: '#/components/responses/AdminAccessRequired'
+        '404':
+          $ref: '#/components/responses/ComplexchNotFound'
+    patch:
+      operationId: ComplexChallengeUpdate
+      summary: Обновление свойств испытания
+      security: [TalentOAuth: []]
+      tags: [complexch]
+      description: "> Достуно только для администрации."
+      requestBody:
+        $ref: '#/components/requestBodies/ComplexChallengeUpdateRequest'
+      responses:
+        '200':
+          description: Ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplexChallenge'
+        '403':
+          $ref: '#/components/responses/AdminAccessRequired'
+        '404':
+          $ref: '#/components/responses/ComplexchNotFound'
+        '409':
+          $ref: '#/components/responses/ComplexchNotUpdatable'
+        '422':
+          $ref: '#/components/responses/ValidationErrors'
+
+  /complexch/{complexch_id}/public:
+    parameters:
+      - $ref: '#/components/parameters/complexch_id'
+      - name: value
+        in: query
+        required: true
+        description: Устанавливаемое значение свойства `public`.
+        schema:
+          type: boolean
+    put:
+      operationId: ComplexChallengePublic
+      summary: Смена состояния публичности
+      security: [TalentOAuth: []]
+      tags: [complexch]
+      description: |-
+        > Достуно только для администрации.
+
+        Смена состояния на опубликованное требует выполнение валидации испытания и его целей.
+        Подробнее см. в описании операции [ComplexChallengeValidate](#tag/complexch/operation/ComplexChallengeValidate)
+      responses:
+        '200':
+          description: Состояние изменено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplexChallenge'
+        '204':
+          description: Состояние уже соответствует запрашиваемому
+        '403':
+          $ref: '#/components/responses/AdminAccessRequired'
+        '404':
+          $ref: '#/components/responses/ComplexchNotFound'
+        '422':
+          $ref: '#/components/responses/ValidationErrors'
+
+  /complexch/{complexch_id}/validate:
+    parameters:
+      - $ref: '#/components/parameters/complexch_id'
+    post:
+      operationId: ComplexChallengeValidate
+      summary: Валидация испытания
+      security: [TalentOAuth: []]
+      tags: [complexch]
+      description: |-
+        > Достуно только для администрации.
+
+        Ошибки валидации включают в себя массив полей относящихся к ошибке.
+        Эти поля содержат путь до ошибки, в котором точка является разделителем.
+
+        > К примеру, ошибка связанная с целью `ID=23` будет иметь путь `goals.23`.
+        >
+        > А ошибка с связанная с полем `required_score` цели `ID=23`: `goals.23.required_score`.
+
+        Поля самого испытания не содержат префиксов, а только имена самих полей.
+      responses:
+        '204':
+          description: Ошибки валидации отсутствуют
+        '403':
+          $ref: '#/components/responses/AdminAccessRequired'
+        '404':
+          $ref: '#/components/responses/ComplexchNotFound'
+        '422':
+          $ref: '#/components/responses/ValidationErrors'
+
+  /complexch/{complexch_id}/goals:
+    parameters:
+      - $ref: '#/components/parameters/complexch_id'
+    get:
+      operationId: ComplexChallengeGoalsList
+      summary: Список целей испытания
+      security: [TalentOAuth: []]
+      tags: [complexch]
+      description: "> Достуно только для администрации."
+      responses:
+        '200':
+          description: Ok
+          headers:
+            X-Count:
+              $ref: '#/components/headers/X-Count'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ComplexChallengeGoal'
+        '403':
+          $ref: '#/components/responses/AdminAccessRequired'
+    post:
+      operationId: ComplexChallengeGoalCreate
+      summary: Создание цели испытания
+      security: [TalentOAuth: []]
+      tags: [complexch]
+      description: "> Достуно только для администрации."
+      requestBody:
+        $ref: '#/components/requestBodies/ComplexChallengeGoalCreateRequest'
+      responses:
+        '201':
+          description: Создана цель
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplexChallengeGoal'
+        '403':
+          $ref: '#/components/responses/AdminAccessRequired'
+        '404':
+          $ref: '#/components/responses/ComplexchNotFound'
+        '409':
+          $ref: '#/components/responses/ComplexchNotUpdatable'
+        '422':
+          $ref: '#/components/responses/ValidationErrors'
+
+  /complexch/goals/{goal_id}:
+    parameters:
+      - name: goal_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int32
+    get:
+      operationId: ComplexChallengeGoalRead
+      summary: Чтение цели испытания
+      security: [TalentOAuth: []]
+      tags: [complexch]
+      description: "> Достуно только для администрации."
+      responses:
+        '200':
+          description: Ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplexChallengeGoal'
+        '403':
+          $ref: '#/components/responses/AdminAccessRequired'
+        '404':
+          $ref: '#/components/responses/ComplexchGoalNotFound'
+    patch:
+      operationId: ComplexChallengeGoalUpdate
+      summary: Обновление цели испытания
+      security: [TalentOAuth: []]
+      tags: [complexch]
+      description: "> Достуно только для администрации."
+      requestBody:
+        $ref: '#/components/requestBodies/ComplexChallengeGoalUpdateRequest'
+      responses:
+        '200':
+          description: Цель обновлена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplexChallengeGoal'
+        '403':
+          $ref: '#/components/responses/AdminAccessRequired'
+        '404':
+          $ref: '#/components/responses/ComplexchGoalNotFound'
+        '409':
+          $ref: '#/components/responses/ComplexchNotUpdatable'
+        '422':
+          $ref: '#/components/responses/ValidationErrors'
+    delete:
+      operationId: ComplexChallengeGoalDelete
+      summary: Удаление цели испытания
+      security: [TalentOAuth: []]
+      tags: [complexch]
+      description: "> Достуно только для администрации."
+      responses:
+        '204':
+          description: Цель удалена
+        '403':
+          $ref: '#/components/responses/AdminAccessRequired'
+        '409':
+          $ref: '#/components/responses/ComplexchNotUpdatable'
+        '404':
+          $ref: '#/components/responses/ComplexchGoalNotFound'
+
+  /complexch/results:
+    get:
+      operationId: ComplexChallengesResultsList
+      summary: Список результатов прохождения агрегатных испытаний
+      security: []
+      tags: [complexch]
+      parameters:
+        - $ref: '#/components/parameters/after_64'
+        - $ref: '#/components/parameters/offset'
+        - $ref: '#/components/parameters/limit'
+        - name: user_id
+          in: query
+          required: false
+          description: Фильтрация по ID пользователя Таланта.
+          schema:
+            type: integer
+            format: int32
+        - name: order_by
+          in: query
+          description: Порядок сортировки результатов.
+          schema:
+            type: string
+            default: id_asc
+            enum:
+              - id_asc
+              - id_desc
+              - user_id_asc
+              - user_id_desc
+              - complexch_id_asc
+              - complexch_id_desc
+      responses:
+        '200':
+          description: Ok
+          headers:
+            X-Count:
+              $ref: '#/components/headers/X-Count'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ComplexChallengeResult'
+
+  /formula:
+    post:
+      operationId: FormulaParse
+      summary: Анализ формулы
+      security: [TalentOAuth: []]
+      tags: [complexch]
+      description: |-
+        > Достуно только для администрации.
+
+        Формула представляется в форме строки последовательности операций,
+        группируемых круглыми скобками в дерево таких последовательностей.
+
+        Формулы имеют разное назначение, в следствии чего, и разный контекст вычисления.
+        Но все они в результате вычисления имеют только одно числовое значение.
+
+        В комплексных испытаниях итоговый балл вычисляется формулой для одного кортежа,
+        которая вычисляет итоговый балл на основе переменных полученных в результате агрегаций.
+        А ниже уровнем, в целях испытания, агрегатные формулы вычисляют значения этих переменных.
+
+        ### Агрегатные формулы для множества кортежей
+
+        Агрегатные формулы вычисляются в отношении множества кортежей с активностями.
+        Эти формулы могут обращаться к свойствам активностей и их метрикам только через агрегатные функции.
+        Такие формулы используются для вычисления значений переменных,
+        объявленных для целей комплексных испытаний.
+
+        ### Формулы вычисления из переменных одного кортежа
+
+        Такие формулы используются для вычисления итогового балла испытания.
+        В рамках вычисления используются числовые переменные из целей.
+        Значение каждой из переменных представлено в единичном числе.
+        В следствии чего, агрегатные функции в такой формуле не имеют смысла,
+        а их упоминание в ней вызовет ошибку валидации.
+      requestBody:
+        description: Формула для валидации.
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - type
+                - body
+              properties:
+                type:
+                  type: string
+                  description: 'Тип формулы: агрегация множества активностей, вычисление финального балла.'
+                  enum:
+                    - one
+                    - many
+                body:
+                  type: string
+                  description: Строка с текстовым представлением формулы.
+      responses:
+        '200':
+          description: Формула успешно проанализирована
+          content:
+            application/json:
+              schema:
+                type: array
+                description: Корневой вектор лексического дерева формулы
+                items:
+                  $ref: '#/components/schemas/FormulaOperation'
+        '422':
+          $ref: '#/components/responses/FormulaValidationError'
+
+  /instruments:
+    get:
+      operationId: InstrumentsList
+      summary: Список инструментов
+      tags: [instruments]
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Count:
+              $ref: '#/components/headers/X-Count'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Instrument'
+      parameters:
+        - $ref: '#/components/parameters/after_32'
+        - $ref: '#/components/parameters/offset'
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/is_active'
+        - name: id
+          in: query
+          description: Идентификаторы инструментов.
+          schema:
+            type: array
+            items:
+              type: integer
+              format: int32
+        - name: t_id
+          in: query
+          description: Фильтрация по ID традиций.
+          schema:
+            type: array
+            items:
+              type: integer
+              format: int32
+        - name: c_id
+          in: query
+          description: Фильтрация по ID компетенций.
+          schema:
+            type: array
+            items:
+              type: integer
+              format: int32
+        - name: name
+          in: query
+          description: Фильтрация по названию инструмента.
+          schema:
+            type: string
+        - name: order_by
+          in: query
+          description: Очереднось выдачи.
+          schema:
+            type: string
+            default: id_asc
+            enum:
+              - id_asc
+              - id_desc
+    post:
+      operationId: InstrumentCreate
+      summary: Добавление инструмента
+      security: [TalentOAuth: []]
+      tags: [instruments]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InstrumentCreateRequest'
+        required: true
+      responses:
+        '201':
+          description: Инструмент создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Instrument'
+        '403':
+          $ref: '#/components/responses/AdminAccessRequired'
+        '409':
+          $ref: '#/components/responses/InstrumentCompetencyIDConflict'
+        '422':
+          $ref: '#/components/responses/TraditionForInstrumentNotFound'
+
+  /instruments/{instrument_id}:
+    parameters:
+      - $ref: '#/components/parameters/instrument_id'
+    get:
+      operationId: InstrumentRead
+      summary: Инструмент
+      tags: [instruments]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Instrument'
+        '404':
+          $ref: '#/components/responses/InstrumentNotFound'
+    patch:
+      operationId: InstrumentUpdate
+      summary: Обновление инструмента
+      security: [TalentOAuth: []]
+      tags: [instruments]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InstrumentUpdateRequest'
+        required: true
+      responses:
+        '200':
+          description: Инструмент обновлен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Instrument'
+        '403':
+          $ref: '#/components/responses/AdminAccessRequired'
+        '404':
+          $ref: '#/components/responses/InstrumentNotFound'
+        '409':
+          $ref: '#/components/responses/InstrumentCompetencyIDConflict'
+        '422':
+          $ref: '#/components/responses/TraditionForInstrumentNotFound'
+
+  /traditions:
+    get:
+      operationId: TraditionsList
+      summary: Список традиций
+      tags: [traditions]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Tradition'
+      parameters:
+        - name: name
+          in: query
+          description: Фильтрация по названию традиции.
+          schema:
+            type: string
+        - $ref: '#/components/parameters/is_active'
+    post:
+      operationId: TraditionCreate
+      summary: Добавление традиции
+      security: [TalentOAuth: []]
+      tags: [traditions]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TraditionCreateRequest'
+        required: true
+      responses:
+        '201':
+          description: Традиция создана
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tradition'
+        '403':
+          $ref: '#/components/responses/AdminAccessRequired'
+        '409':
+          $ref: '#/components/responses/TraditionNameConflict'
+
+  /traditions/{tradition_id}:
+    parameters:
+      - $ref: '#/components/parameters/tradition_id'
+    get:
+      operationId: TraditionRead
+      summary: Традиция
+      tags: [traditions]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tradition'
+        '404':
+          $ref: '#/components/responses/TraditionNotFound'
+    patch:
+      operationId: TraditionUpdate
+      summary: Обновление традиции
+      security: [TalentOAuth: []]
+      tags: [traditions]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TraditionUpdateRequest'
+        required: true
+      responses:
+        '200':
+          description: Традиция обновлена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tradition'
+        '403':
+          $ref: '#/components/responses/AdminAccessRequired'
+        '404':
+          $ref: '#/components/responses/TraditionNotFound'
+        '409':
+          $ref: '#/components/responses/TraditionNameConflict'
+
+  /traditions/{tradition_id}/instruments:
+    get:
+      operationId: TraditionInstrumentsList
+      summary: Список инструментов традиции
+      tags: [instruments]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Instrument'
+    parameters:
+      - $ref: '#/components/parameters/tradition_id'
+
+  /user-awards:
+    get:
+      operationId: UserAwardsList
+      summary: Список наград пользователя
+      description: Формат возвращаемых объектов в массиве зависит от типа используемой авторизации. Для `BerlogaJWT` возращаются `PlayerAward`, для `TalentOAuth` - `TalentUserAward`.
+      security: [TalentOAuth: [], BerlogaJWT: []]
+      tags: [userawards]
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Count:
+              $ref: '#/components/headers/X-Count'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  oneOf:
+                    - $ref: '#/components/schemas/PlayerAward'
+                    - $ref: '#/components/schemas/TalentUserAward'
+      parameters:
+        - $ref: '#/components/parameters/offset'
+        - $ref: '#/components/parameters/limit'
+
+  /user-awards/{award_id}/displayed:
+    post:
+      operationId: UserAwardDisplayed
+      summary: Отметка награды продемонстрированной
+      description: Отметка награды как продемонстрированной пользователю в приложении.
+      security: [BerlogaJWT: []]
+      tags: [userawards]
+      responses:
+        '200':
+          description: OK
+      parameters:
+        - name: award_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int32
+
+  /user-progress:
+    get:
+      operationId: UserProgressList
+      summary: Прогресс пользователя
+      description: Прогресс пользователя по традициям и инструментам.
+      security: [TalentOAuth: [], BerlogaJWT: []]
+      tags: [progress]
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Count:
+              $ref: '#/components/headers/X-Count'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Progress'
+      parameters:
+        - $ref: '#/components/parameters/offset'
+        - $ref: '#/components/parameters/limit'
+        - name: traditions_only
+          in: query
+          description: Прогресс только по традициям
+          schema:
+            type: boolean
+            default: false
+        - name: tradition_instruments
+          in: query
+          description: Прогресс по инструментам традиции
+          schema:
+            type: integer
+            format: int32
+        - name: tradition_ids
+          in: query
+          description: Прогресс по определенным традициям
+          schema:
+            type: array
+            items:
+              type: integer
+              format: int32
+        - name: instrument_ids
+          in: query
+          description: Прогресс по определенным инструментам
+          schema:
+            type: array
+            items:
+              type: integer
+              format: int32
+        - name: order_by
+          in: query
+          description: Порядок сортировки
+          schema:
+            type: string
+            default: created_at_desc
+            enum:
+              - created_at_desc
+              - created_at_asc
+              - updated_at_desc
+              - updated_at_asc
+              - tradition_id
+              - instrument_id
+
+components:
+  schemas:
+    ActivityFuncs:
+      type: array
+      description: |-
+        Функции преобразования активностей перед выполнением агрегации формулой цели `score_formula`.
+      items:
+        $ref: '#/components/schemas/ActivityFunc'
+    ActivityFunc:
+      oneOf:
+        - $ref: '#/components/schemas/ActivityFuncSlice'
+        - $ref: '#/components/schemas/ActivityFuncSort'
+        - $ref: '#/components/schemas/ActivityFuncFilter'
+        - $ref: '#/components/schemas/ActivityFuncMap'
+      discriminator:
+        propertyName: kind
+    ActivityFuncKind:
+      type: string
+      description: Тип функции.
+    ActivityFuncSlice:
+      type: object
+      required:
+        - kind
+        - right
+      properties:
+        kind:
+          $ref: '#/components/schemas/ActivityFuncKind'
+        left:
+          type: integer
+          format: int32
+          default: 0
+          minimum: 0
+          description: Левая граница среза.
+        right:
+          type: integer
+          format: int32
+          minimum: 1
+          description: Правая граница среза.
+    ActivityFuncSort:
+      type: object
+      required:
+        - kind
+        - key
+        - ordering
+      properties:
+        kind:
+          $ref: '#/components/schemas/ActivityFuncKind'
+        key:
+          type: string
+          description: Ключ сортировки.
+          minLength: 1
+        ordering:
+          type: string
+          description: Порядок сортировки.
+          enum:
+            - asc
+            - desc
+    ActivityFuncFilter:
+      type: object
+      required:
+        - kind
+        - key
+        - op
+        - value
+      properties:
+        kind:
+          $ref: '#/components/schemas/ActivityFuncKind'
+        key:
+          type: string
+          description: Ключ значения в активности.
+        op:
+          type: string
+          description: Операция сравнения.
+          enum:
+            - "<"
+            - ">"
+            - ">="
+            - "<="
+            - "=="
+            - "!="
+        value:
+          description: |-
+            Значение, с которым выполняется сравнение.
+
+            > На данный момент поддерживается только числовое значение.
+          oneOf:
+          - type: number
+            format: float64
+    ActivityFuncMap:
+      type: object
+      required:
+        - kind
+        - key
+        - formula
+      properties:
+        kind:
+          $ref: '#/components/schemas/ActivityFuncKind'
+        key:
+          type: string
+          description: Ключ в который будет помещено значение возвращенное формулой.
+          minLength: 1
+        formula:
+          type: string
+          description: Формула вычисления значения.
+          minLength: 1
+    AdminAccessRequired:
+      type: object
+      required:
+        - error_message
+      properties:
+        error_message:
+          type: string
+          description: Текстовое описание ошибки.
+    ApplicationID:
+      type: string
+      format: uuid
+      description: Идентификатор приложения.
+    Award:
+      type: object
+      description: Награда, выдаваемая за получение уровня по традиции или инструменту.
+      required:
+        - id
+        - created_at
+        - updated_at
+        - tradition_id
+        - instrument_id
+        - award_level
+        - dependency_level
+        - required_scores
+        - name
+        - description
+        - icon_url
+      properties:
+        id:
+          type: integer
+          format: int32
+          description: Идентификатор награды.
+        created_at:
+          type: string
+          format: date-time
+          description: Дата создания
+        updated_at:
+          type: string
+          format: date-time
+          description: Дата обновления
+        tradition_id:
+          $ref: '#/components/schemas/TraditionID'
+        instrument_id:
+          $ref: '#/components/schemas/InstrumentID'
+        award_level:
+          type: integer
+          format: int32
+          description: Уровень традиции/инструмента ассоциированный с этой наградой.
+        dependency_level:
+          type: integer
+          format: int32
+          description: Опциональный уровень зависимой традиции/инструмента, без которого нельзя получить награду. При отсутствии зависимости, содержит `0`.
+        required_scores:
+          type: number
+          format: float64
+          description: Кол-во баллов необходимое для достижения `award_level` и получения этой награды.
+        name:
+          type: string
+          description: Название награды.
+        description:
+          type: string
+          description: Описание награды.
+        icon_url:
+          type: string
+          description: URL иконки награды.
+    ComplexChallengeBaseWritable:
+      type: object
+      properties:
+        update_strategy:
+          $ref: '#/components/schemas/ComplexChallengeUpdateStrategy'
+        name:
+          type: string
+          description: Название испытания.
+        period_from:
+          type: string
+          format: date-time
+          nullable: true
+          description: Начало периода допускаемых в испытании активностей.
+        period_to:
+          type: string
+          format: date-time
+          nullable: true
+          description: Завершение периода допускаемых в испытании активностей.
+    ComplexChallengeBase:
+      title: Агрегатное испытание (базовые параметры)
+      allOf:
+        - type: object
+          required:
+            - id
+            - created_at
+            - updated_at
+            - public
+            - update_strategy
+            - name
+            - period_from
+            - period_to
+          properties:
+            id:
+              type: integer
+              format: int32
+              description: ID испытания.
+            created_at:
+              type: string
+              format: date-time
+              description: Дата создания.
+            updated_at:
+              type: string
+              format: date-time
+              description: Дата обновления.
+            public:
+              type: boolean
+              description: Статус публичности испытания.
+        - $ref: '#/components/schemas/ComplexChallengeBaseWritable'
+    ComplexChallengePrivateWritable:
+      type: object
+      properties:
+        score_formula:
+          type: string
+          description: Формула вычисления балла.
+        required_score:
+          type: number
+          format: float64
+          minimum: 0
+          description: Проходной балл.
+    ComplexChallenge:
+      x-tags: [complexch]
+      title: Агрегатное испытание
+      allOf:
+        - $ref: '#/components/schemas/ComplexChallengeBase'
+        - $ref: '#/components/schemas/ComplexChallengePrivateWritable'
+        - type: object
+          required:
+            - score_formula
+            - required_score
+    ComplexChallengeRead:
+      title: Агрегатное испытание
+      allOf:
+        - $ref: '#/components/schemas/ComplexChallengeBase'
+        - type: object
+          properties:
+            score_formula:
+              type: string
+              dzescription: Формула вычисления балла.
+            required_score:
+              type: number
+              format: float64
+              description: Проходной балл.
+            goals:
+              type: array
+              items:
+                $ref: '#/components/schemas/ComplexChallengeGoal'
+    ComplexChallengeGoalFields:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Название цели.
+          minLength: 1
+        score_formula:
+          type: string
+          description: Формула вычисления балла.
+        required_score:
+          type: number
+          format: float64
+          minimum: 0
+          description: Проходной балл для выполнения цели.
+        variable_name:
+          type: string
+          description: Имя переменной для использования балла в итоговой формуле испытания.
+        context_ids:
+          type: array
+          description: Фильтрация активностей по идентификаторам контекстов.
+          items:
+            type: string
+            format: uuid
+        context_properties:
+          type: array
+          description: |-
+            Фильтр по контекстам имеющим указанные значения свойств.
+
+            Формат записи значения: `ключ+значение`.
+            В качестве значения можно указать несколько вариантов разделенных вертикальной чертой.
+
+            Пример фильтра по свойству `instrument` с 3 допустимыми вариантами: `instrument+piano|guitar|drums`.
+          items:
+            type: string
+            pattern: '\w+\+[\d\w\|]+'
+        application_id:
+          type: string
+          format: uuid
+          description: ID приложения для фильтрации контекстов.
+          nullable: true
+        activity_limit:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 1000
+          description: Максимальное кол-во активностей для использования в вычислениях.
+          nullable: true
+        activity_funcs:
+          $ref: '#/components/schemas/ActivityFuncs'
+    ComplexChallengeGoal:
+      x-tags: [complexch]
+      title: Цель испытания
+      allOf:
+        - type: object
+          required:
+            - id
+            - complexch_id
+            - created_at
+            - updated_at
+            - name
+            - score_formula
+            - required_score
+            - variable_name
+          properties:
+            id:
+              type: integer
+              format: int32
+              description: ID цели.
+            complexch_id:
+              type: integer
+              format: int32
+              description: ID испытания.
+            created_at:
+              type: string
+              format: date-time
+              description: Дата создания.
+            updated_at:
+              type: string
+              format: date-time
+              description: Дата обновления.
+        - $ref: '#/components/schemas/ComplexChallengeGoalFields'
+    ComplexChallengeUpdateStrategy:
+      title: Стратегия обновления результата
+      type: string
+      enum:
+        - initial
+        - increase
+    ComplexChallengeResult:
+      title: Результат прохождения агрегатного испытания
+      type: object
+      required:
+        - id
+        - user_id
+        - complexch_id
+        - passed
+        - passed_was
+        - score
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: integer
+          format: int64
+        user_id:
+          type: integer
+          format: int32
+        complexch_id:
+          type: integer
+          format: int32
+        passed:
+          type: boolean
+        passed_was:
+          type: boolean
+        score:
+          type: number
+          format: float64
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    Error:
+      type: object
+      required:
+        - error_message
+      properties:
+        error_message:
+          type: string
+          description: Текстовое описание ошибки. В первую очередь предназначено для разработчиков. Но в случае отсуствия `verbose_message` в ответе, можно использовать и `error_message`.
+        verbose_message:
+          type: string
+          description: Человеко-понятное описание ошибки. Присуствует только в некоторых случаях.
+    FormulaOperand:
+      title: Операнд двуместной операции формулы
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          description: 'Тип операнда: группа операторов, числовой литерал, имя числовой переменной, агрегатная функция.'
+          enum:
+            - group
+            - literal
+            - variable
+            - agg_func
+        literal_value:
+          type: number
+          format: float64
+          description: Число литерала.
+        variable_name:
+          type: string
+          description: Имя переменной.
+        agg_func:
+          type: string
+          description: Имя агрегатной функции.
+        func_argument:
+          type: string
+          description: Аргумент функции (как правило, имя переменной).
+        children:
+          type: array
+          description: Вектор сгруппированных операций входящих в этот операнд.
+          items:
+            $ref: '#/components/schemas/FormulaOperation'
+    FormulaOperation:
+      title: Операция формулы
+      type: object
+      required:
+        - operator
+        - operand
+      properties:
+        operator:
+          type: string
+          enum:
+            - "+"
+            - "-"
+            - "*"
+            - "/"
+        operand:
+          $ref: '#/components/schemas/FormulaOperand'
+    FormulaValidationError:
+      title: Ошибка валидации формулы
+      type: object
+      required:
+        - error_message
+        - error_place
+        - pos_left
+        - pos_right
+      properties:
+        error_message:
+          type: string
+          description: Текст ошибки валидации.
+        error_place:
+          type: string
+          description: Место в формуле (последовательность символов), которое привело к ошибке.
+        pos_left:
+          type: integer
+          description: Левая граница последовательности, в которой возникла ошибка.
+        pos_right:
+          type: integer
+          description: Правая граница последовательности, в которой возникла ошибка.
+    Instrument:
+      type: object
+      description: Инструмент традиции
+      required:
+        - id
+        - tradition_id
+        - competency_id
+        - name
+        - image
+        - description
+        - is_active
+      properties:
+        id:
+          type: integer
+          format: int32
+          description: Идентификатор инструмента.
+        tradition_id:
+          type: integer
+          format: int32
+          description: ID традиции.
+        competency_id:
+          type: integer
+          format: int32
+          description: ID компетенции.
+        name:
+          type: string
+          description: Название инструмента.
+        image:
+          type: string
+          format: uri
+          description: Изображение инструмента.
+        description:
+          type: string
+          description: Описание инструмента.
+        is_active:
+          type: boolean
+          description: Активен ли инструмент.
+    InstrumentCreateRequest:
+      type: object
+      description: Создание инструмента традиции
+      required:
+        - tradition_id
+        - competency_id
+        - name
+        - image
+        - description
+      properties:
+        tradition_id:
+          type: integer
+          format: int32
+          description: ID традиции.
+        competency_id:
+          type: integer
+          format: int32
+          description: ID компетенции.
+        name:
+          type: string
+          description: Название инструмента.
+        image:
+          type: string
+          format: uri
+          description: Изображение инструмента.
+        description:
+          type: string
+          description: Описание инструмента.
+    InstrumentUpdateRequest:
+      type: object
+      description: Обновление инструмента традиции
+      properties:
+        tradition_id:
+          type: integer
+          format: int32
+          description: ID традиции.
+        competency_id:
+          type: integer
+          format: int32
+          description: ID компетенции.
+        name:
+          type: string
+          description: Название инструмента.
+        image:
+          type: string
+          format: uri
+          description: Изображение инструмента.
+        description:
+          type: string
+          description: Описание инструмента.
+        is_active:
+          type: boolean
+          description: Признак активности инструмента. Удаление инструмента не предусмотрено, но его можно скрыть, поменяв значение этого поля на false.
+    InstrumentID:
+      type: integer
+      format: int32
+      description: ID инструмента.
+      nullable: true
+    PlayerAward:
+      allOf:
+        - $ref: '#/components/schemas/UserAward'
+        - type: object
+          required:
+            - displayed_at
+          properties:
+            displayed_at:
+              type: string
+              format: date-time
+              nullable: true
+              description: Дата оповещенения игрока о получении награды в приложении. Содержит null, если награда еще не демонстрировалась игроку.
+    Progress:
+      type: object
+      description: Прогресс пользователя по традиции или инструменту.
+      required:
+        - tradition_id
+        - instrument_id
+        - scores
+        - award_level
+      properties:
+        tradition_id:
+          $ref: '#/components/schemas/TraditionID'
+        instrument_id:
+          $ref: '#/components/schemas/InstrumentID'
+        scores:
+          type: number
+          format: float64
+          description: Текущее кол-во баллов.
+        award_level:
+          type: integer
+          format: int32
+          description: Текущий уровень традиции/инструмента.
+    TalentUserAward:
+      allOf:
+        - $ref: '#/components/schemas/UserAward'
+        - type: object
+          required:
+            - displayed
+          properties:
+            displayed:
+              type: array
+              description: Даты отображения награды в приложениях.
+              items:
+                type: object
+                required:
+                  - application_id
+                  - displayed_at
+                properties:
+                  application_id:
+                    $ref: '#/components/schemas/ApplicationID'
+                  displayed_at:
+                    type: string
+                    format: date-time
+    Tradition:
+      type: object
+      description: Традиция берлоги
+      required:
+        - id
+        - name
+        - image
+        - description
+        - is_active
+      properties:
+        id:
+          type: integer
+          format: int32
+          description: Идентификатор традиции.
+        name:
+          type: string
+          description: Название традиции.
+        image:
+          type: string
+          format: uri
+          description: Изображение традиции.
+        description:
+          type: string
+          description: Описание традиции.
+        is_active:
+          type: boolean
+          description: Активна ли традиция.
+    TraditionCreateRequest:
+      type: object
+      description: Создание традиции берлоги
+      required:
+        - name
+        - image
+        - description
+      properties:
+        name:
+          type: string
+          description: Название традиции.
+        image:
+          type: string
+          format: uri
+          description: Изображение традиции.
+        description:
+          type: string
+          description: Описание традиции.
+    TraditionUpdateRequest:
+      type: object
+      description: Обновление традиции берлоги
+      properties:
+        name:
+          type: string
+          description: Название традиции.
+        image:
+          type: string
+          format: uri
+          description: Изображение традиции.
+        description:
+          type: string
+          description: Описание традиции.
+        is_active:
+          type: boolean
+          description: Признак активности традиции. Удаление традиции не предусмотрено, но ее можно скрыть, поменяв значение этого поля на false.
+    TraditionID:
+      type: integer
+      format: int32
+      description: ID традиции.
+      nullable: true
+    UserAward:
+      type: object
+      description: Награда, полученная игроком или пользователем Таланта за достигнутый уровень по традиции или инструменту.
+      required:
+        - award_id
+        - awarded_at
+      properties:
+        award_id:
+          type: integer
+          format: int32
+          description: Идентификатор награды.
+        awarded_at:
+          type: string
+          format: date-time
+          description: Дата выдачи награды системой.
+    ValidationError:
+      type: object
+      required:
+        - error_message
+        - fields
+      properties:
+        error_message:
+          type: string
+          description: Текст ошибки.
+        fields:
+          type: array
+          description: Задействованные поля.
+          items:
+            type: string
+    ValidationErrors:
+      type: array
+      items:
+        $ref: '#/components/schemas/ValidationError'
+
+  parameters:
+    complexch_id:
+      name: complexch_id
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int32
+    tradition_id:
+      name: tradition_id
+      in: path
+      description: Идентификатор традиции в адресе.
+      required: true
+      schema:
+        type: integer
+        format: int32
+    instrument_id:
+      name: instrument_id
+      in: path
+      description: Идентификатор инструмента в адресе.
+      required: true
+      schema:
+        type: integer
+        format: int32
+    is_active:
+      name: is_active
+      in: query
+      description: Фильтрация по признаку активности объектов выборки. По умолчанию возвращаются только активные.
+      schema:
+        type: string
+        default: !!str true
+        enum:
+          - !!str true
+          - !!str false
+          - all
+    after_32:
+      name: after
+      in: query
+      description: Пропуск объектов с идентификатором равном или менее указанного.
+      schema:
+        type: integer
+        format: int32
+    after_64:
+      name: after
+      in: query
+      description: Пропуск объектов с идентификатором равном или менее указанного.
+      schema:
+        type: integer
+        format: int64
+    limit:
+      name: limit
+      in: query
+      description: Максимум объектов возвращаемых в теле ответа.
+      schema:
+        type: integer
+        format: int32
+        default: 20
+        minimum: 1
+        maximum: 50
+    offset:
+      name: offset
+      in: query
+      description: Кол-во объектов выборки для пропуска.
+      schema:
+        type: integer
+        format: int32
+        default: 0
+        minimum: 0
+        maximum: 200
+
+  requestBodies:
+    ComplexChallengeCreateRequest:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - name
+            properties:
+              name:
+                type: string
+                minLength: 5
+    ComplexChallengeUpdateRequest:
+      required: true
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ComplexChallengeBaseWritable'
+              - $ref: '#/components/schemas/ComplexChallengePrivateWritable'
+    ComplexChallengeGoalCreateRequest:
+      required: true
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ComplexChallengeGoalFields'
+              - type: object
+                required:
+                  - name
+    ComplexChallengeGoalUpdateRequest:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ComplexChallengeGoalFields'
+
+  headers:
+    X-Count:
+      required: true
+      description: Общее кол-во объектов, входящих в выборку без учета пагинации.
+      schema:
+        type: integer
+        format: int64
+
+  securitySchemes:
+    BerlogaJWT:
+      type: apiKey
+      name: Authorization
+      in: header
+      description: JWT, полученный эндпоинтом [issue-token](/berloga-idp/docs/#operation/IssueToken).
+    TalentOAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT, полученный [OAuth провайдером платформы Талант](/api/docs/).
+
+  responses:
+    AdminAccessRequired:
+      description: Доступ без прав администратора запрещен
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AdminAccessRequired'
+    ComplexchGoalNotFound:
+      description: Цель испытания не найдена
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - error_message
+            properties:
+              error_message:
+                type: string
+    ComplexchNotFound:
+      description: Агрегатное испытание не найдено
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - error_message
+            properties:
+              error_message:
+                type: string
+    ComplexchNotUpdatable:
+      description: Опубликованное испытание нельзя изменять
+    FormulaValidationError:
+      description: Формула не валидна
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/FormulaValidationError'
+    InstrumentCompetencyIDConflict:
+      description: Инструмент с таким ID компетенции уже существует
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    TraditionForInstrumentNotFound:
+      description: Необходимо использовать существующий ID традиции
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    InstrumentNotFound:
+      description: Инструмент не найден
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    TraditionNameConflict:
+      description: Традиция с таким названием уже существует
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    TraditionNotFound:
+      description: Традиция не найдена
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ValidationErrors:
+      description: Ошибки валидации запроса
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidationErrors'
