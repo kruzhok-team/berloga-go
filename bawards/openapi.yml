@@ -237,9 +237,11 @@ paths:
       summary: Список пройденных испытаний
       tags: [challenges]
       description: |-
-        Параметры `player_id` и `talent_id` взаимоисключаемы.
-        При аутентификации токеном `TalentOAuth`, предустанавливается параметр `talent_id`.
-        При аутентификации токеном `BerlogaJWT`, предустанавливается параметр `player_id`.
+        > При аутентификации токеном `TalentOAuth`, предустанавливается параметр `talent_id`.
+
+        > При аутентификации токеном `BerlogaJWT`, предустанавливается параметр `player_id`.
+
+        Обязателен для заполнения один из параметров `player_id` и `talent_id`.
       security: [TalentOAuth: [], BerlogaJWT: [], {}]
       responses:
         '200':
@@ -264,6 +266,8 @@ paths:
                       type: string
                       format: date-time
                       description: Дата прохождения испытания
+        '422':
+          $ref: '#/components/responses/UnprocessableRequest'
       parameters:
         - name: player_id
           in: query
@@ -578,7 +582,10 @@ paths:
             format: int32
         - name: order_by
           in: query
-          description: Порядок сортировки результатов.
+          description: |-
+            Порядок сортировки результатов.
+
+            Недоступно при использовании параметра `after`.
           schema:
             type: string
             default: id_asc
@@ -601,6 +608,8 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/ComplexChallengeResult'
+        '409':
+          $ref: '#/components/responses/AfterWithOrderBy'
 
   /formula:
     post:
@@ -648,10 +657,20 @@ paths:
               properties:
                 type:
                   type: string
-                  description: 'Тип формулы: агрегация множества активностей, вычисление финального балла.'
+                  description: |-
+                    От типа формулы зависит какие форматы данных она принимает.
+
+                    `vars` - Формула для нескольких именнованных скалярных переменных.
+
+                    `rows` - Формула для агрегации множества строк.
+
+                    `mixed` - Формула используемая для каждой строки из множества.
+                    Допускается обращение как к переменным обрабатываемой строки,
+                    так и к переменным всех строк множества через агрегатные функции.
                   enum:
-                    - one
-                    - many
+                    - vars
+                    - rows
+                    - mixed
                 body:
                   type: string
                   description: Строка с текстовым представлением формулы.
@@ -1110,14 +1129,6 @@ components:
           type: string
           description: Формула вычисления значения.
           minLength: 1
-    AdminAccessRequired:
-      type: object
-      required:
-        - error_message
-      properties:
-        error_message:
-          type: string
-          description: Текстовое описание ошибки.
     ApplicationID:
       type: string
       format: uuid
@@ -1392,10 +1403,7 @@ components:
       properties:
         error_message:
           type: string
-          description: Текстовое описание ошибки. В первую очередь предназначено для разработчиков. Но в случае отсуствия `verbose_message` в ответе, можно использовать и `error_message`.
-        verbose_message:
-          type: string
-          description: Человеко-понятное описание ошибки. Присуствует только в некоторых случаях.
+          description: Текстовое описание ошибки.
     FormulaOperand:
       title: Операнд двуместной операции формулы
       type: object
@@ -1849,7 +1857,25 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/AdminAccessRequired'
+            type: object
+            required:
+              - error_message
+            properties:
+              error_message:
+                type: string
+                description: Текстовое описание ошибки.
+    AfterWithOrderBy:
+      x-summary: Параметр after с некорректной сортировкой
+      description: Параметр after использован с параметрами сортировки не по ID в возрастающем порядке
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - error_message
+            properties:
+              error_message:
+                type: string
     ComplexchGoalNotFound:
       description: Цель испытания не найдена
       content:
@@ -1910,6 +1936,18 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
+    UnprocessableRequest:
+      description: Запрос невозможно обработать
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - error_message
+            properties:
+              error_message:
+                type: string
+                description: Текстовое описание ошибки.
     ValidationErrors:
       description: Ошибки валидации запроса
       content:
