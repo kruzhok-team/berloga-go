@@ -1403,9 +1403,11 @@ func (s *FormulaParseReq) Validate() error {
 
 func (s FormulaParseReqType) Validate() error {
 	switch s {
-	case "one":
+	case "vars":
 		return nil
-	case "many":
+	case "rows":
+		return nil
+	case "mixed":
 		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)

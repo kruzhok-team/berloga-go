@@ -126,7 +126,7 @@ type Invoker interface {
 	// Список результатов прохождения агрегатных испытаний.
 	//
 	// GET /complexch/results
-	ComplexChallengesResultsList(ctx context.Context, params ComplexChallengesResultsListParams) (*ComplexChallengesResultsListOKHeaders, error)
+	ComplexChallengesResultsList(ctx context.Context, params ComplexChallengesResultsListParams) (ComplexChallengesResultsListRes, error)
 	// FormulaParse invokes FormulaParse operation.
 	//
 	// > Достуно только для администрации.
@@ -191,14 +191,15 @@ type Invoker interface {
 	InstrumentsList(ctx context.Context, params InstrumentsListParams) (*InstrumentsListOKHeaders, error)
 	// PassedChallengesList invokes PassedChallengesList operation.
 	//
-	// Параметры `player_id` и `talent_id` взаимоисключаемы.
-	// При аутентификации токеном `TalentOAuth`,
+	// > При аутентификации токеном `TalentOAuth`,
 	// предустанавливается параметр `talent_id`.
-	// При аутентификации токеном `BerlogaJWT`,
+	// > При аутентификации токеном `BerlogaJWT`,
 	// предустанавливается параметр `player_id`.
+	// Обязателен для заполнения один из параметров `player_id` и
+	// `talent_id`.
 	//
 	// GET /challenges/passed
-	PassedChallengesList(ctx context.Context, params PassedChallengesListParams) (*PassedChallengesListOKHeaders, error)
+	PassedChallengesList(ctx context.Context, params PassedChallengesListParams) (PassedChallengesListRes, error)
 	// TraditionCreate invokes TraditionCreate operation.
 	//
 	// Добавление традиции.
@@ -2021,12 +2022,12 @@ func (c *Client) sendComplexChallengesList(ctx context.Context, params ComplexCh
 // Список результатов прохождения агрегатных испытаний.
 //
 // GET /complexch/results
-func (c *Client) ComplexChallengesResultsList(ctx context.Context, params ComplexChallengesResultsListParams) (*ComplexChallengesResultsListOKHeaders, error) {
+func (c *Client) ComplexChallengesResultsList(ctx context.Context, params ComplexChallengesResultsListParams) (ComplexChallengesResultsListRes, error) {
 	res, err := c.sendComplexChallengesResultsList(ctx, params)
 	return res, err
 }
 
-func (c *Client) sendComplexChallengesResultsList(ctx context.Context, params ComplexChallengesResultsListParams) (res *ComplexChallengesResultsListOKHeaders, err error) {
+func (c *Client) sendComplexChallengesResultsList(ctx context.Context, params ComplexChallengesResultsListParams) (res ComplexChallengesResultsListRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("ComplexChallengesResultsList"),
 		semconv.HTTPMethodKey.String("GET"),
@@ -2890,19 +2891,20 @@ func (c *Client) sendInstrumentsList(ctx context.Context, params InstrumentsList
 
 // PassedChallengesList invokes PassedChallengesList operation.
 //
-// Параметры `player_id` и `talent_id` взаимоисключаемы.
-// При аутентификации токеном `TalentOAuth`,
+// > При аутентификации токеном `TalentOAuth`,
 // предустанавливается параметр `talent_id`.
-// При аутентификации токеном `BerlogaJWT`,
+// > При аутентификации токеном `BerlogaJWT`,
 // предустанавливается параметр `player_id`.
+// Обязателен для заполнения один из параметров `player_id` и
+// `talent_id`.
 //
 // GET /challenges/passed
-func (c *Client) PassedChallengesList(ctx context.Context, params PassedChallengesListParams) (*PassedChallengesListOKHeaders, error) {
+func (c *Client) PassedChallengesList(ctx context.Context, params PassedChallengesListParams) (PassedChallengesListRes, error) {
 	res, err := c.sendPassedChallengesList(ctx, params)
 	return res, err
 }
 
-func (c *Client) sendPassedChallengesList(ctx context.Context, params PassedChallengesListParams) (res *PassedChallengesListOKHeaders, err error) {
+func (c *Client) sendPassedChallengesList(ctx context.Context, params PassedChallengesListParams) (res PassedChallengesListRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("PassedChallengesList"),
 		semconv.HTTPMethodKey.String("GET"),

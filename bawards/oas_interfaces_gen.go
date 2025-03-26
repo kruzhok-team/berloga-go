@@ -41,6 +41,10 @@ type ComplexChallengeValidateRes interface {
 	complexChallengeValidateRes()
 }
 
+type ComplexChallengesResultsListRes interface {
+	complexChallengesResultsListRes()
+}
+
 type FormulaParseRes interface {
 	formulaParseRes()
 }
@@ -55,6 +59,10 @@ type InstrumentReadRes interface {
 
 type InstrumentUpdateRes interface {
 	instrumentUpdateRes()
+}
+
+type PassedChallengesListRes interface {
+	passedChallengesListRes()
 }
 
 type TraditionCreateRes interface {

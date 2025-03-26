@@ -455,7 +455,6 @@ func (s *ActivityFuncSortOrdering) UnmarshalText(data []byte) error {
 
 type ActivityFuncs []ActivityFunc
 
-// Ref: #/components/schemas/AdminAccessRequired
 type AdminAccessRequired struct {
 	// Текстовое описание ошибки.
 	ErrorMessage string `json:"error_message"`
@@ -485,6 +484,22 @@ func (*AdminAccessRequired) instrumentCreateRes()           {}
 func (*AdminAccessRequired) instrumentUpdateRes()           {}
 func (*AdminAccessRequired) traditionCreateRes()            {}
 func (*AdminAccessRequired) traditionUpdateRes()            {}
+
+type AfterWithOrderBy struct {
+	ErrorMessage string `json:"error_message"`
+}
+
+// GetErrorMessage returns the value of ErrorMessage.
+func (s *AfterWithOrderBy) GetErrorMessage() string {
+	return s.ErrorMessage
+}
+
+// SetErrorMessage sets the value of ErrorMessage.
+func (s *AfterWithOrderBy) SetErrorMessage(val string) {
+	s.ErrorMessage = val
+}
+
+func (*AfterWithOrderBy) complexChallengesResultsListRes() {}
 
 type ApplicationID uuid.UUID
 
@@ -1932,6 +1947,8 @@ func (s *ComplexChallengesResultsListOKHeaders) SetResponse(val []ComplexChallen
 	s.Response = val
 }
 
+func (*ComplexChallengesResultsListOKHeaders) complexChallengesResultsListRes() {}
+
 type ComplexChallengesResultsListOrderBy string
 
 const (
@@ -2049,14 +2066,8 @@ func (*ComplexchNotUpdatable) complexChallengeUpdateRes()     {}
 
 // Ref: #/components/schemas/Error
 type Error struct {
-	// Текстовое описание ошибки. В первую очередь
-	// предназначено для разработчиков. Но в случае
-	// отсуствия `verbose_message` в ответе, можно использовать и
-	// `error_message`.
+	// Текстовое описание ошибки.
 	ErrorMessage string `json:"error_message"`
-	// Человеко-понятное описание ошибки. Присуствует
-	// только в некоторых случаях.
-	VerboseMessage OptString `json:"verbose_message"`
 }
 
 // GetErrorMessage returns the value of ErrorMessage.
@@ -2064,19 +2075,9 @@ func (s *Error) GetErrorMessage() string {
 	return s.ErrorMessage
 }
 
-// GetVerboseMessage returns the value of VerboseMessage.
-func (s *Error) GetVerboseMessage() OptString {
-	return s.VerboseMessage
-}
-
 // SetErrorMessage sets the value of ErrorMessage.
 func (s *Error) SetErrorMessage(val string) {
 	s.ErrorMessage = val
-}
-
-// SetVerboseMessage sets the value of VerboseMessage.
-func (s *Error) SetVerboseMessage(val OptString) {
-	s.VerboseMessage = val
 }
 
 func (*Error) instrumentReadRes()  {}
@@ -2304,8 +2305,17 @@ type FormulaParseOKApplicationJSON []FormulaOperation
 func (*FormulaParseOKApplicationJSON) formulaParseRes() {}
 
 type FormulaParseReq struct {
-	// Тип формулы: агрегация множества активностей,
-	// вычисление финального балла.
+	// От типа формулы зависит какие форматы данных она
+	// принимает.
+	// `vars` - Формула для нескольких именнованных скалярных
+	// переменных.
+	// `rows` - Формула для агрегации множества строк.
+	// `mixed` - Формула используемая для каждой строки из
+	// множества.
+	// Допускается обращение как к переменным
+	// обрабатываемой строки,
+	// так и к переменным всех строк множества через
+	// агрегатные функции.
 	Type FormulaParseReqType `json:"type"`
 	// Строка с текстовым представлением формулы.
 	Body string `json:"body"`
@@ -2331,29 +2341,42 @@ func (s *FormulaParseReq) SetBody(val string) {
 	s.Body = val
 }
 
-// Тип формулы: агрегация множества активностей,
-// вычисление финального балла.
+// От типа формулы зависит какие форматы данных она
+// принимает.
+// `vars` - Формула для нескольких именнованных скалярных
+// переменных.
+// `rows` - Формула для агрегации множества строк.
+// `mixed` - Формула используемая для каждой строки из
+// множества.
+// Допускается обращение как к переменным
+// обрабатываемой строки,
+// так и к переменным всех строк множества через
+// агрегатные функции.
 type FormulaParseReqType string
 
 const (
-	FormulaParseReqTypeOne  FormulaParseReqType = "one"
-	FormulaParseReqTypeMany FormulaParseReqType = "many"
+	FormulaParseReqTypeVars  FormulaParseReqType = "vars"
+	FormulaParseReqTypeRows  FormulaParseReqType = "rows"
+	FormulaParseReqTypeMixed FormulaParseReqType = "mixed"
 )
 
 // AllValues returns all FormulaParseReqType values.
 func (FormulaParseReqType) AllValues() []FormulaParseReqType {
 	return []FormulaParseReqType{
-		FormulaParseReqTypeOne,
-		FormulaParseReqTypeMany,
+		FormulaParseReqTypeVars,
+		FormulaParseReqTypeRows,
+		FormulaParseReqTypeMixed,
 	}
 }
 
 // MarshalText implements encoding.TextMarshaler.
 func (s FormulaParseReqType) MarshalText() ([]byte, error) {
 	switch s {
-	case FormulaParseReqTypeOne:
+	case FormulaParseReqTypeVars:
 		return []byte(s), nil
-	case FormulaParseReqTypeMany:
+	case FormulaParseReqTypeRows:
+		return []byte(s), nil
+	case FormulaParseReqTypeMixed:
 		return []byte(s), nil
 	default:
 		return nil, errors.Errorf("invalid value: %q", s)
@@ -2363,11 +2386,14 @@ func (s FormulaParseReqType) MarshalText() ([]byte, error) {
 // UnmarshalText implements encoding.TextUnmarshaler.
 func (s *FormulaParseReqType) UnmarshalText(data []byte) error {
 	switch FormulaParseReqType(data) {
-	case FormulaParseReqTypeOne:
-		*s = FormulaParseReqTypeOne
+	case FormulaParseReqTypeVars:
+		*s = FormulaParseReqTypeVars
 		return nil
-	case FormulaParseReqTypeMany:
-		*s = FormulaParseReqTypeMany
+	case FormulaParseReqTypeRows:
+		*s = FormulaParseReqTypeRows
+		return nil
+	case FormulaParseReqTypeMixed:
+		*s = FormulaParseReqTypeMixed
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -3844,6 +3870,8 @@ func (s *PassedChallengesListOKHeaders) SetResponse(val []PassedChallengesListOK
 	s.Response = val
 }
 
+func (*PassedChallengesListOKHeaders) passedChallengesListRes() {}
+
 type PassedChallengesListOKItem struct {
 	ChallengeID int32 `json:"challenge_id"`
 	// Дата прохождения испытания.
@@ -4266,6 +4294,23 @@ func (s *TraditionsListIsActive) UnmarshalText(data []byte) error {
 		return errors.Errorf("invalid value: %q", data)
 	}
 }
+
+type UnprocessableRequest struct {
+	// Текстовое описание ошибки.
+	ErrorMessage string `json:"error_message"`
+}
+
+// GetErrorMessage returns the value of ErrorMessage.
+func (s *UnprocessableRequest) GetErrorMessage() string {
+	return s.ErrorMessage
+}
+
+// SetErrorMessage sets the value of ErrorMessage.
+func (s *UnprocessableRequest) SetErrorMessage(val string) {
+	s.ErrorMessage = val
+}
+
+func (*UnprocessableRequest) passedChallengesListRes() {}
 
 // UserAwardDisplayedOK is response for UserAwardDisplayed operation.
 type UserAwardDisplayedOK struct{}

@@ -101,6 +101,7 @@ type ComplexChallengesResultsListParams struct {
 	// Фильтрация по ID пользователя Таланта.
 	UserID OptInt32
 	// Порядок сортировки результатов.
+	// Недоступно при использовании параметра `after`.
 	OrderBy OptComplexChallengesResultsListOrderBy
 }
 

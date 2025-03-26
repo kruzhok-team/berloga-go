@@ -966,6 +966,102 @@ func (s *AdminAccessRequired) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
+// Encode implements json.Marshaler.
+func (s *AfterWithOrderBy) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *AfterWithOrderBy) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("error_message")
+		e.Str(s.ErrorMessage)
+	}
+}
+
+var jsonFieldsNameOfAfterWithOrderBy = [1]string{
+	0: "error_message",
+}
+
+// Decode decodes AfterWithOrderBy from json.
+func (s *AfterWithOrderBy) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode AfterWithOrderBy to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "error_message":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Str()
+				s.ErrorMessage = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"error_message\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode AfterWithOrderBy")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfAfterWithOrderBy) {
+					name = jsonFieldsNameOfAfterWithOrderBy[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *AfterWithOrderBy) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *AfterWithOrderBy) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode encodes ApplicationID as json.
 func (s ApplicationID) Encode(e *jx.Encoder) {
 	unwrapped := uuid.UUID(s)
@@ -3689,17 +3785,10 @@ func (s *Error) encodeFields(e *jx.Encoder) {
 		e.FieldStart("error_message")
 		e.Str(s.ErrorMessage)
 	}
-	{
-		if s.VerboseMessage.Set {
-			e.FieldStart("verbose_message")
-			s.VerboseMessage.Encode(e)
-		}
-	}
 }
 
-var jsonFieldsNameOfError = [2]string{
+var jsonFieldsNameOfError = [1]string{
 	0: "error_message",
-	1: "verbose_message",
 }
 
 // Decode decodes Error from json.
@@ -3722,16 +3811,6 @@ func (s *Error) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"error_message\"")
-			}
-		case "verbose_message":
-			if err := func() error {
-				s.VerboseMessage.Reset()
-				if err := s.VerboseMessage.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"verbose_message\"")
 			}
 		default:
 			return d.Skip()
@@ -4353,10 +4432,12 @@ func (s *FormulaParseReqType) Decode(d *jx.Decoder) error {
 	}
 	// Try to use constant string.
 	switch FormulaParseReqType(v) {
-	case FormulaParseReqTypeOne:
-		*s = FormulaParseReqTypeOne
-	case FormulaParseReqTypeMany:
-		*s = FormulaParseReqTypeMany
+	case FormulaParseReqTypeVars:
+		*s = FormulaParseReqTypeVars
+	case FormulaParseReqTypeRows:
+		*s = FormulaParseReqTypeRows
+	case FormulaParseReqTypeMixed:
+		*s = FormulaParseReqTypeMixed
 	default:
 		*s = FormulaParseReqType(v)
 	}
@@ -6960,6 +7041,102 @@ func (s *TraditionUpdateRequest) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *TraditionUpdateRequest) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *UnprocessableRequest) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *UnprocessableRequest) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("error_message")
+		e.Str(s.ErrorMessage)
+	}
+}
+
+var jsonFieldsNameOfUnprocessableRequest = [1]string{
+	0: "error_message",
+}
+
+// Decode decodes UnprocessableRequest from json.
+func (s *UnprocessableRequest) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UnprocessableRequest to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "error_message":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Str()
+				s.ErrorMessage = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"error_message\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode UnprocessableRequest")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfUnprocessableRequest) {
+					name = jsonFieldsNameOfUnprocessableRequest[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *UnprocessableRequest) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UnprocessableRequest) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
