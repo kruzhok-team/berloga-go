@@ -5,25 +5,39 @@ package bawards
 // AwardsListParams is parameters of AwardsList operation.
 type AwardsListParams struct {
 	// Кол-во объектов выборки для пропуска.
-	Offset OptInt32
+	Offset OptInt32 `json:",omitempty,omitzero"`
 	// Максимум объектов возвращаемых в теле ответа.
-	Limit OptInt32
+	Limit OptInt32 `json:",omitempty,omitzero"`
 	// Фильтрация по ID традиции.
-	TraditionID OptInt32
+	TraditionID OptInt32 `json:",omitempty,omitzero"`
 	// Фильтрация по ID инструмента.
-	InstrumentID OptInt32
+	InstrumentID OptInt32 `json:",omitempty,omitzero"`
 	// Порядок сортировки.
-	OrderBy OptAwardsListOrderBy
+	OrderBy OptAwardsListOrderBy `json:",omitempty,omitzero"`
 	// Включить в ответ свойство `applications`.
-	WithApplications OptBool
+	WithApplications OptBool `json:",omitempty,omitzero"`
+}
+
+// ChallengeV2ReadParams is parameters of ChallengeV2Read operation.
+type ChallengeV2ReadParams struct {
+	ChallengeID int32
 }
 
 // ChallengesListParams is parameters of ChallengesList operation.
 type ChallengesListParams struct {
 	// Кол-во объектов выборки для пропуска.
-	Offset OptInt32
+	Offset OptInt32 `json:",omitempty,omitzero"`
 	// Максимум объектов возвращаемых в теле ответа.
-	Limit OptInt32
+	Limit OptInt32 `json:",omitempty,omitzero"`
+}
+
+// ChallengesV2ListParams is parameters of ChallengesV2List operation.
+type ChallengesV2ListParams struct {
+	// Пропуск объектов с идентификатором равном или менее
+	// указанного.
+	After OptInt32 `json:",omitempty,omitzero"`
+	// Максимум объектов возвращаемых в теле ответа.
+	Limit OptInt32 `json:",omitempty,omitzero"`
 }
 
 // ComplexChallengeGoalCreateParams is parameters of ComplexChallengeGoalCreate operation.
@@ -62,7 +76,7 @@ type ComplexChallengePublicParams struct {
 type ComplexChallengeReadParams struct {
 	// Вернуть объекты со свойством `goals`.
 	// Доступно только при наличии административных прав.
-	WithGoals   OptBool
+	WithGoals   OptBool `json:",omitempty,omitzero"`
 	ComplexchID int32
 }
 
@@ -80,29 +94,29 @@ type ComplexChallengeValidateParams struct {
 type ComplexChallengesListParams struct {
 	// Пропуск объектов с идентификатором равном или менее
 	// указанного.
-	After OptInt32
+	After OptInt32 `json:",omitempty,omitzero"`
 	// Кол-во объектов выборки для пропуска.
-	Offset OptInt32
+	Offset OptInt32 `json:",omitempty,omitzero"`
 	// Максимум объектов возвращаемых в теле ответа.
-	Limit OptInt32
+	Limit OptInt32 `json:",omitempty,omitzero"`
 	// Фильтр по статусу опубликованности.
-	Public OptBool
+	Public OptBool `json:",omitempty,omitzero"`
 }
 
 // ComplexChallengesResultsListParams is parameters of ComplexChallengesResultsList operation.
 type ComplexChallengesResultsListParams struct {
 	// Пропуск объектов с идентификатором равном или менее
 	// указанного.
-	After OptInt64
+	After OptInt64 `json:",omitempty,omitzero"`
 	// Кол-во объектов выборки для пропуска.
-	Offset OptInt32
+	Offset OptInt32 `json:",omitempty,omitzero"`
 	// Максимум объектов возвращаемых в теле ответа.
-	Limit OptInt32
+	Limit OptInt32 `json:",omitempty,omitzero"`
 	// Фильтрация по ID пользователя Таланта.
-	UserID OptInt32
+	UserID OptInt32 `json:",omitempty,omitzero"`
 	// Порядок сортировки результатов.
 	// Недоступно при использовании параметра `after`.
-	OrderBy OptComplexChallengesResultsListOrderBy
+	OrderBy OptComplexChallengesResultsListOrderBy `json:",omitempty,omitzero"`
 }
 
 // InstrumentReadParams is parameters of InstrumentRead operation.
@@ -121,24 +135,24 @@ type InstrumentUpdateParams struct {
 type InstrumentsListParams struct {
 	// Пропуск объектов с идентификатором равном или менее
 	// указанного.
-	After OptInt32
+	After OptInt32 `json:",omitempty,omitzero"`
 	// Кол-во объектов выборки для пропуска.
-	Offset OptInt32
+	Offset OptInt32 `json:",omitempty,omitzero"`
 	// Максимум объектов возвращаемых в теле ответа.
-	Limit OptInt32
+	Limit OptInt32 `json:",omitempty,omitzero"`
 	// Фильтрация по признаку активности объектов выборки.
 	// По умолчанию возвращаются только активные.
-	IsActive OptInstrumentsListIsActive
+	IsActive OptIsActive `json:",omitempty,omitzero"`
 	// Идентификаторы инструментов.
-	ID []int32
+	ID []int32 `json:",omitempty"`
 	// Фильтрация по ID традиций.
-	TID []int32
+	TID []int32 `json:",omitempty"`
 	// Фильтрация по ID компетенций.
-	CID []int32
+	CID []int32 `json:",omitempty"`
 	// Фильтрация по названию инструмента.
-	Name OptString
+	Name OptString `json:",omitempty,omitzero"`
 	// Очереднось выдачи.
-	OrderBy OptInstrumentsListOrderBy
+	OrderBy OptInstrumentsListOrderBy `json:",omitempty,omitzero"`
 }
 
 // PassedChallengesListParams is parameters of PassedChallengesList operation.
@@ -147,14 +161,29 @@ type PassedChallengesListParams struct {
 	// пользователем, привязанным к указанному игроку.
 	// При отсутствии привязанного пользователя,
 	// возвращаются испытания указанного игрока.
-	PlayerID OptUUID
+	PlayerID OptUUID `json:",omitempty,omitzero"`
 	// Испытания пройденные игроками указанного
 	// пользователя.
-	TalentID OptInt32
+	TalentID OptInt32 `json:",omitempty,omitzero"`
 	// Кол-во объектов выборки для пропуска.
-	Offset OptInt32
+	Offset OptInt32 `json:",omitempty,omitzero"`
 	// Максимум объектов возвращаемых в теле ответа.
-	Limit OptInt32
+	Limit OptInt32 `json:",omitempty,omitzero"`
+}
+
+// PassedChallengesV2ListParams is parameters of PassedChallengesV2List operation.
+type PassedChallengesV2ListParams struct {
+	// Пропуск объектов с идентификатором равном или менее
+	// указанного.
+	After OptInt64 `json:",omitempty,omitzero"`
+	// Максимум объектов возвращаемых в теле ответа.
+	Limit OptInt32 `json:",omitempty,omitzero"`
+	// Фильтрация по ID испытания.
+	ChallengeID OptInt32 `json:",omitempty,omitzero"`
+	// Фильтрация по ID пользователя Таланта.
+	UserID OptInt32 `json:",omitempty,omitzero"`
+	// Порядок сортировки результатов.
+	OrderBy OptPassedChallengesV2ListOrderBy `json:",omitempty,omitzero"`
 }
 
 // TraditionInstrumentsListParams is parameters of TraditionInstrumentsList operation.
@@ -178,10 +207,10 @@ type TraditionUpdateParams struct {
 // TraditionsListParams is parameters of TraditionsList operation.
 type TraditionsListParams struct {
 	// Фильтрация по названию традиции.
-	Name OptString
+	Name OptString `json:",omitempty,omitzero"`
 	// Фильтрация по признаку активности объектов выборки.
 	// По умолчанию возвращаются только активные.
-	IsActive OptTraditionsListIsActive
+	IsActive OptIsActive `json:",omitempty,omitzero"`
 }
 
 // UserAwardDisplayedParams is parameters of UserAwardDisplayed operation.
@@ -192,25 +221,25 @@ type UserAwardDisplayedParams struct {
 // UserAwardsListParams is parameters of UserAwardsList operation.
 type UserAwardsListParams struct {
 	// Кол-во объектов выборки для пропуска.
-	Offset OptInt32
+	Offset OptInt32 `json:",omitempty,omitzero"`
 	// Максимум объектов возвращаемых в теле ответа.
-	Limit OptInt32
+	Limit OptInt32 `json:",omitempty,omitzero"`
 }
 
 // UserProgressListParams is parameters of UserProgressList operation.
 type UserProgressListParams struct {
 	// Кол-во объектов выборки для пропуска.
-	Offset OptInt32
+	Offset OptInt32 `json:",omitempty,omitzero"`
 	// Максимум объектов возвращаемых в теле ответа.
-	Limit OptInt32
+	Limit OptInt32 `json:",omitempty,omitzero"`
 	// Прогресс только по традициям.
-	TraditionsOnly OptBool
+	TraditionsOnly OptBool `json:",omitempty,omitzero"`
 	// Прогресс по инструментам традиции.
-	TraditionInstruments OptInt32
+	TraditionInstruments OptInt32 `json:",omitempty,omitzero"`
 	// Прогресс по определенным традициям.
-	TraditionIds []int32
+	TraditionIds []int32 `json:",omitempty"`
 	// Прогресс по определенным инструментам.
-	InstrumentIds []int32
+	InstrumentIds []int32 `json:",omitempty"`
 	// Порядок сортировки.
-	OrderBy OptUserProgressListOrderBy
+	OrderBy OptUserProgressListOrderBy `json:",omitempty,omitzero"`
 }

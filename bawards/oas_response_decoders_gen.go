@@ -10,7 +10,6 @@ import (
 
 	"github.com/go-faster/errors"
 	"github.com/go-faster/jx"
-
 	"github.com/ogen-go/ogen/conv"
 	"github.com/ogen-go/ogen/ogenerrors"
 	"github.com/ogen-go/ogen/uri"
@@ -112,7 +111,7 @@ func decodeAwardsListResponse(resp *http.Response) (res *AwardsListOKHeaders, _ 
 							return err
 						}
 					} else {
-						return validate.ErrFieldRequired
+						return err
 					}
 					return nil
 				}(); err != nil {
@@ -124,7 +123,83 @@ func decodeAwardsListResponse(resp *http.Response) (res *AwardsListOKHeaders, _ 
 			return res, validate.InvalidContentType(ct)
 		}
 	}
-	return res, validate.UnexpectedStatusCode(resp.StatusCode)
+	return res, validate.UnexpectedStatusCodeWithResponse(resp)
+}
+
+func decodeChallengeV2ReadResponse(resp *http.Response) (res ChallengeV2ReadRes, _ error) {
+	switch resp.StatusCode {
+	case 200:
+		// Code 200.
+		ct, _, err := mime.ParseMediaType(resp.Header.Get("Content-Type"))
+		if err != nil {
+			return res, errors.Wrap(err, "parse media type")
+		}
+		switch {
+		case ct == "application/json":
+			buf, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return res, err
+			}
+			d := jx.DecodeBytes(buf)
+
+			var response Challenge
+			if err := func() error {
+				if err := response.Decode(d); err != nil {
+					return err
+				}
+				if err := d.Skip(); err != io.EOF {
+					return errors.New("unexpected trailing data")
+				}
+				return nil
+			}(); err != nil {
+				err = &ogenerrors.DecodeBodyError{
+					ContentType: ct,
+					Body:        buf,
+					Err:         err,
+				}
+				return res, err
+			}
+			return &response, nil
+		default:
+			return res, validate.InvalidContentType(ct)
+		}
+	case 404:
+		// Code 404.
+		ct, _, err := mime.ParseMediaType(resp.Header.Get("Content-Type"))
+		if err != nil {
+			return res, errors.Wrap(err, "parse media type")
+		}
+		switch {
+		case ct == "application/json":
+			buf, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return res, err
+			}
+			d := jx.DecodeBytes(buf)
+
+			var response NotFound
+			if err := func() error {
+				if err := response.Decode(d); err != nil {
+					return err
+				}
+				if err := d.Skip(); err != io.EOF {
+					return errors.New("unexpected trailing data")
+				}
+				return nil
+			}(); err != nil {
+				err = &ogenerrors.DecodeBodyError{
+					ContentType: ct,
+					Body:        buf,
+					Err:         err,
+				}
+				return res, err
+			}
+			return &response, nil
+		default:
+			return res, validate.InvalidContentType(ct)
+		}
+	}
+	return res, validate.UnexpectedStatusCodeWithResponse(resp)
 }
 
 func decodeChallengesListResponse(resp *http.Response) (res *ChallengesListOKHeaders, _ error) {
@@ -222,7 +297,7 @@ func decodeChallengesListResponse(resp *http.Response) (res *ChallengesListOKHea
 							return err
 						}
 					} else {
-						return validate.ErrFieldRequired
+						return err
 					}
 					return nil
 				}(); err != nil {
@@ -234,7 +309,100 @@ func decodeChallengesListResponse(resp *http.Response) (res *ChallengesListOKHea
 			return res, validate.InvalidContentType(ct)
 		}
 	}
-	return res, validate.UnexpectedStatusCode(resp.StatusCode)
+	return res, validate.UnexpectedStatusCodeWithResponse(resp)
+}
+
+func decodeChallengesV2ListResponse(resp *http.Response) (res *ChallengesV2ListHeaders, _ error) {
+	switch resp.StatusCode {
+	case 200:
+		// Code 200.
+		ct, _, err := mime.ParseMediaType(resp.Header.Get("Content-Type"))
+		if err != nil {
+			return res, errors.Wrap(err, "parse media type")
+		}
+		switch {
+		case ct == "application/json":
+			buf, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return res, err
+			}
+			d := jx.DecodeBytes(buf)
+
+			var response []Challenge
+			if err := func() error {
+				response = make([]Challenge, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem Challenge
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					response = append(response, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				if err := d.Skip(); err != io.EOF {
+					return errors.New("unexpected trailing data")
+				}
+				return nil
+			}(); err != nil {
+				err = &ogenerrors.DecodeBodyError{
+					ContentType: ct,
+					Body:        buf,
+					Err:         err,
+				}
+				return res, err
+			}
+			// Validate response.
+			if err := func() error {
+				if response == nil {
+					return errors.New("nil is invalid value")
+				}
+				return nil
+			}(); err != nil {
+				return res, errors.Wrap(err, "validate")
+			}
+			var wrapper ChallengesV2ListHeaders
+			wrapper.Response = response
+			h := uri.NewHeaderDecoder(resp.Header)
+			// Parse "X-Count" header.
+			{
+				cfg := uri.HeaderParameterDecodingConfig{
+					Name:    "X-Count",
+					Explode: false,
+				}
+				if err := func() error {
+					if err := h.HasParam(cfg); err == nil {
+						if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+							val, err := d.DecodeValue()
+							if err != nil {
+								return err
+							}
+
+							c, err := conv.ToInt64(val)
+							if err != nil {
+								return err
+							}
+
+							wrapper.XCount = c
+							return nil
+						}); err != nil {
+							return err
+						}
+					} else {
+						return err
+					}
+					return nil
+				}(); err != nil {
+					return res, errors.Wrap(err, "parse X-Count header")
+				}
+			}
+			return &wrapper, nil
+		default:
+			return res, validate.InvalidContentType(ct)
+		}
+	}
+	return res, validate.UnexpectedStatusCodeWithResponse(resp)
 }
 
 func decodeComplexChallengeCreateResponse(resp *http.Response) (res ComplexChallengeCreateRes, _ error) {
@@ -297,7 +465,7 @@ func decodeComplexChallengeCreateResponse(resp *http.Response) (res ComplexChall
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response AdminAccessRequired
+			var response PermissionDenied
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -319,7 +487,7 @@ func decodeComplexChallengeCreateResponse(resp *http.Response) (res ComplexChall
 			return res, validate.InvalidContentType(ct)
 		}
 	}
-	return res, validate.UnexpectedStatusCode(resp.StatusCode)
+	return res, validate.UnexpectedStatusCodeWithResponse(resp)
 }
 
 func decodeComplexChallengeGoalCreateResponse(resp *http.Response) (res ComplexChallengeGoalCreateRes, _ error) {
@@ -382,7 +550,7 @@ func decodeComplexChallengeGoalCreateResponse(resp *http.Response) (res ComplexC
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response AdminAccessRequired
+			var response PermissionDenied
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -486,7 +654,7 @@ func decodeComplexChallengeGoalCreateResponse(resp *http.Response) (res ComplexC
 			return res, validate.InvalidContentType(ct)
 		}
 	}
-	return res, validate.UnexpectedStatusCode(resp.StatusCode)
+	return res, validate.UnexpectedStatusCodeWithResponse(resp)
 }
 
 func decodeComplexChallengeGoalDeleteResponse(resp *http.Response) (res ComplexChallengeGoalDeleteRes, _ error) {
@@ -508,7 +676,7 @@ func decodeComplexChallengeGoalDeleteResponse(resp *http.Response) (res ComplexC
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response AdminAccessRequired
+			var response PermissionDenied
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -568,7 +736,7 @@ func decodeComplexChallengeGoalDeleteResponse(resp *http.Response) (res ComplexC
 		// Code 409.
 		return &ComplexchNotUpdatable{}, nil
 	}
-	return res, validate.UnexpectedStatusCode(resp.StatusCode)
+	return res, validate.UnexpectedStatusCodeWithResponse(resp)
 }
 
 func decodeComplexChallengeGoalReadResponse(resp *http.Response) (res ComplexChallengeGoalReadRes, _ error) {
@@ -631,7 +799,7 @@ func decodeComplexChallengeGoalReadResponse(resp *http.Response) (res ComplexCha
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response AdminAccessRequired
+			var response PermissionDenied
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -688,7 +856,7 @@ func decodeComplexChallengeGoalReadResponse(resp *http.Response) (res ComplexCha
 			return res, validate.InvalidContentType(ct)
 		}
 	}
-	return res, validate.UnexpectedStatusCode(resp.StatusCode)
+	return res, validate.UnexpectedStatusCodeWithResponse(resp)
 }
 
 func decodeComplexChallengeGoalUpdateResponse(resp *http.Response) (res ComplexChallengeGoalUpdateRes, _ error) {
@@ -751,7 +919,7 @@ func decodeComplexChallengeGoalUpdateResponse(resp *http.Response) (res ComplexC
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response AdminAccessRequired
+			var response PermissionDenied
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -855,7 +1023,7 @@ func decodeComplexChallengeGoalUpdateResponse(resp *http.Response) (res ComplexC
 			return res, validate.InvalidContentType(ct)
 		}
 	}
-	return res, validate.UnexpectedStatusCode(resp.StatusCode)
+	return res, validate.UnexpectedStatusCodeWithResponse(resp)
 }
 
 func decodeComplexChallengeGoalsListResponse(resp *http.Response) (res ComplexChallengeGoalsListRes, _ error) {
@@ -953,7 +1121,7 @@ func decodeComplexChallengeGoalsListResponse(resp *http.Response) (res ComplexCh
 							return err
 						}
 					} else {
-						return validate.ErrFieldRequired
+						return err
 					}
 					return nil
 				}(); err != nil {
@@ -978,7 +1146,7 @@ func decodeComplexChallengeGoalsListResponse(resp *http.Response) (res ComplexCh
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response AdminAccessRequired
+			var response PermissionDenied
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -1000,7 +1168,7 @@ func decodeComplexChallengeGoalsListResponse(resp *http.Response) (res ComplexCh
 			return res, validate.InvalidContentType(ct)
 		}
 	}
-	return res, validate.UnexpectedStatusCode(resp.StatusCode)
+	return res, validate.UnexpectedStatusCodeWithResponse(resp)
 }
 
 func decodeComplexChallengePublicResponse(resp *http.Response) (res ComplexChallengePublicRes, _ error) {
@@ -1066,7 +1234,7 @@ func decodeComplexChallengePublicResponse(resp *http.Response) (res ComplexChall
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response AdminAccessRequired
+			var response PermissionDenied
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -1167,7 +1335,7 @@ func decodeComplexChallengePublicResponse(resp *http.Response) (res ComplexChall
 			return res, validate.InvalidContentType(ct)
 		}
 	}
-	return res, validate.UnexpectedStatusCode(resp.StatusCode)
+	return res, validate.UnexpectedStatusCodeWithResponse(resp)
 }
 
 func decodeComplexChallengeReadResponse(resp *http.Response) (res ComplexChallengeReadRes, _ error) {
@@ -1230,7 +1398,7 @@ func decodeComplexChallengeReadResponse(resp *http.Response) (res ComplexChallen
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response AdminAccessRequired
+			var response PermissionDenied
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -1287,7 +1455,7 @@ func decodeComplexChallengeReadResponse(resp *http.Response) (res ComplexChallen
 			return res, validate.InvalidContentType(ct)
 		}
 	}
-	return res, validate.UnexpectedStatusCode(resp.StatusCode)
+	return res, validate.UnexpectedStatusCodeWithResponse(resp)
 }
 
 func decodeComplexChallengeUpdateResponse(resp *http.Response) (res ComplexChallengeUpdateRes, _ error) {
@@ -1350,7 +1518,7 @@ func decodeComplexChallengeUpdateResponse(resp *http.Response) (res ComplexChall
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response AdminAccessRequired
+			var response PermissionDenied
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -1454,7 +1622,7 @@ func decodeComplexChallengeUpdateResponse(resp *http.Response) (res ComplexChall
 			return res, validate.InvalidContentType(ct)
 		}
 	}
-	return res, validate.UnexpectedStatusCode(resp.StatusCode)
+	return res, validate.UnexpectedStatusCodeWithResponse(resp)
 }
 
 func decodeComplexChallengeValidateResponse(resp *http.Response) (res ComplexChallengeValidateRes, _ error) {
@@ -1476,7 +1644,7 @@ func decodeComplexChallengeValidateResponse(resp *http.Response) (res ComplexCha
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response AdminAccessRequired
+			var response PermissionDenied
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -1577,7 +1745,7 @@ func decodeComplexChallengeValidateResponse(resp *http.Response) (res ComplexCha
 			return res, validate.InvalidContentType(ct)
 		}
 	}
-	return res, validate.UnexpectedStatusCode(resp.StatusCode)
+	return res, validate.UnexpectedStatusCodeWithResponse(resp)
 }
 
 func decodeComplexChallengesListResponse(resp *http.Response) (res *ComplexChallengesListOKHeaders, _ error) {
@@ -1675,7 +1843,7 @@ func decodeComplexChallengesListResponse(resp *http.Response) (res *ComplexChall
 							return err
 						}
 					} else {
-						return validate.ErrFieldRequired
+						return err
 					}
 					return nil
 				}(); err != nil {
@@ -1687,7 +1855,7 @@ func decodeComplexChallengesListResponse(resp *http.Response) (res *ComplexChall
 			return res, validate.InvalidContentType(ct)
 		}
 	}
-	return res, validate.UnexpectedStatusCode(resp.StatusCode)
+	return res, validate.UnexpectedStatusCodeWithResponse(resp)
 }
 
 func decodeComplexChallengesResultsListResponse(resp *http.Response) (res ComplexChallengesResultsListRes, _ error) {
@@ -1785,7 +1953,7 @@ func decodeComplexChallengesResultsListResponse(resp *http.Response) (res Comple
 							return err
 						}
 					} else {
-						return validate.ErrFieldRequired
+						return err
 					}
 					return nil
 				}(); err != nil {
@@ -1832,7 +2000,7 @@ func decodeComplexChallengesResultsListResponse(resp *http.Response) (res Comple
 			return res, validate.InvalidContentType(ct)
 		}
 	}
-	return res, validate.UnexpectedStatusCode(resp.StatusCode)
+	return res, validate.UnexpectedStatusCodeWithResponse(resp)
 }
 
 func decodeFormulaParseResponse(resp *http.Response) (res FormulaParseRes, _ error) {
@@ -1917,7 +2085,7 @@ func decodeFormulaParseResponse(resp *http.Response) (res FormulaParseRes, _ err
 			return res, validate.InvalidContentType(ct)
 		}
 	}
-	return res, validate.UnexpectedStatusCode(resp.StatusCode)
+	return res, validate.UnexpectedStatusCodeWithResponse(resp)
 }
 
 func decodeInstrumentCreateResponse(resp *http.Response) (res InstrumentCreateRes, _ error) {
@@ -1971,7 +2139,7 @@ func decodeInstrumentCreateResponse(resp *http.Response) (res InstrumentCreateRe
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response AdminAccessRequired
+			var response PermissionDenied
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -2063,7 +2231,7 @@ func decodeInstrumentCreateResponse(resp *http.Response) (res InstrumentCreateRe
 			return res, validate.InvalidContentType(ct)
 		}
 	}
-	return res, validate.UnexpectedStatusCode(resp.StatusCode)
+	return res, validate.UnexpectedStatusCodeWithResponse(resp)
 }
 
 func decodeInstrumentReadResponse(resp *http.Response) (res InstrumentReadRes, _ error) {
@@ -2139,7 +2307,7 @@ func decodeInstrumentReadResponse(resp *http.Response) (res InstrumentReadRes, _
 			return res, validate.InvalidContentType(ct)
 		}
 	}
-	return res, validate.UnexpectedStatusCode(resp.StatusCode)
+	return res, validate.UnexpectedStatusCodeWithResponse(resp)
 }
 
 func decodeInstrumentUpdateResponse(resp *http.Response) (res InstrumentUpdateRes, _ error) {
@@ -2193,7 +2361,7 @@ func decodeInstrumentUpdateResponse(resp *http.Response) (res InstrumentUpdateRe
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response AdminAccessRequired
+			var response PermissionDenied
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -2320,7 +2488,7 @@ func decodeInstrumentUpdateResponse(resp *http.Response) (res InstrumentUpdateRe
 			return res, validate.InvalidContentType(ct)
 		}
 	}
-	return res, validate.UnexpectedStatusCode(resp.StatusCode)
+	return res, validate.UnexpectedStatusCodeWithResponse(resp)
 }
 
 func decodeInstrumentsListResponse(resp *http.Response) (res *InstrumentsListOKHeaders, _ error) {
@@ -2401,7 +2569,7 @@ func decodeInstrumentsListResponse(resp *http.Response) (res *InstrumentsListOKH
 							return err
 						}
 					} else {
-						return validate.ErrFieldRequired
+						return err
 					}
 					return nil
 				}(); err != nil {
@@ -2413,7 +2581,7 @@ func decodeInstrumentsListResponse(resp *http.Response) (res *InstrumentsListOKH
 			return res, validate.InvalidContentType(ct)
 		}
 	}
-	return res, validate.UnexpectedStatusCode(resp.StatusCode)
+	return res, validate.UnexpectedStatusCodeWithResponse(resp)
 }
 
 func decodePassedChallengesListResponse(resp *http.Response) (res PassedChallengesListRes, _ error) {
@@ -2494,7 +2662,7 @@ func decodePassedChallengesListResponse(resp *http.Response) (res PassedChalleng
 							return err
 						}
 					} else {
-						return validate.ErrFieldRequired
+						return err
 					}
 					return nil
 				}(); err != nil {
@@ -2541,7 +2709,100 @@ func decodePassedChallengesListResponse(resp *http.Response) (res PassedChalleng
 			return res, validate.InvalidContentType(ct)
 		}
 	}
-	return res, validate.UnexpectedStatusCode(resp.StatusCode)
+	return res, validate.UnexpectedStatusCodeWithResponse(resp)
+}
+
+func decodePassedChallengesV2ListResponse(resp *http.Response) (res *PassedChallengesV2ListHeaders, _ error) {
+	switch resp.StatusCode {
+	case 200:
+		// Code 200.
+		ct, _, err := mime.ParseMediaType(resp.Header.Get("Content-Type"))
+		if err != nil {
+			return res, errors.Wrap(err, "parse media type")
+		}
+		switch {
+		case ct == "application/json":
+			buf, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return res, err
+			}
+			d := jx.DecodeBytes(buf)
+
+			var response []PassedChallengesV2ListItem
+			if err := func() error {
+				response = make([]PassedChallengesV2ListItem, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem PassedChallengesV2ListItem
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					response = append(response, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				if err := d.Skip(); err != io.EOF {
+					return errors.New("unexpected trailing data")
+				}
+				return nil
+			}(); err != nil {
+				err = &ogenerrors.DecodeBodyError{
+					ContentType: ct,
+					Body:        buf,
+					Err:         err,
+				}
+				return res, err
+			}
+			// Validate response.
+			if err := func() error {
+				if response == nil {
+					return errors.New("nil is invalid value")
+				}
+				return nil
+			}(); err != nil {
+				return res, errors.Wrap(err, "validate")
+			}
+			var wrapper PassedChallengesV2ListHeaders
+			wrapper.Response = response
+			h := uri.NewHeaderDecoder(resp.Header)
+			// Parse "X-Count" header.
+			{
+				cfg := uri.HeaderParameterDecodingConfig{
+					Name:    "X-Count",
+					Explode: false,
+				}
+				if err := func() error {
+					if err := h.HasParam(cfg); err == nil {
+						if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+							val, err := d.DecodeValue()
+							if err != nil {
+								return err
+							}
+
+							c, err := conv.ToInt64(val)
+							if err != nil {
+								return err
+							}
+
+							wrapper.XCount = c
+							return nil
+						}); err != nil {
+							return err
+						}
+					} else {
+						return err
+					}
+					return nil
+				}(); err != nil {
+					return res, errors.Wrap(err, "parse X-Count header")
+				}
+			}
+			return &wrapper, nil
+		default:
+			return res, validate.InvalidContentType(ct)
+		}
+	}
+	return res, validate.UnexpectedStatusCodeWithResponse(resp)
 }
 
 func decodeTraditionCreateResponse(resp *http.Response) (res TraditionCreateRes, _ error) {
@@ -2595,7 +2856,7 @@ func decodeTraditionCreateResponse(resp *http.Response) (res TraditionCreateRes,
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response AdminAccessRequired
+			var response PermissionDenied
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -2652,7 +2913,7 @@ func decodeTraditionCreateResponse(resp *http.Response) (res TraditionCreateRes,
 			return res, validate.InvalidContentType(ct)
 		}
 	}
-	return res, validate.UnexpectedStatusCode(resp.StatusCode)
+	return res, validate.UnexpectedStatusCodeWithResponse(resp)
 }
 
 func decodeTraditionInstrumentsListResponse(resp *http.Response) (res []Instrument, _ error) {
@@ -2710,7 +2971,7 @@ func decodeTraditionInstrumentsListResponse(resp *http.Response) (res []Instrume
 			return res, validate.InvalidContentType(ct)
 		}
 	}
-	return res, validate.UnexpectedStatusCode(resp.StatusCode)
+	return res, validate.UnexpectedStatusCodeWithResponse(resp)
 }
 
 func decodeTraditionReadResponse(resp *http.Response) (res TraditionReadRes, _ error) {
@@ -2786,7 +3047,7 @@ func decodeTraditionReadResponse(resp *http.Response) (res TraditionReadRes, _ e
 			return res, validate.InvalidContentType(ct)
 		}
 	}
-	return res, validate.UnexpectedStatusCode(resp.StatusCode)
+	return res, validate.UnexpectedStatusCodeWithResponse(resp)
 }
 
 func decodeTraditionUpdateResponse(resp *http.Response) (res TraditionUpdateRes, _ error) {
@@ -2840,7 +3101,7 @@ func decodeTraditionUpdateResponse(resp *http.Response) (res TraditionUpdateRes,
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response AdminAccessRequired
+			var response PermissionDenied
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -2932,7 +3193,7 @@ func decodeTraditionUpdateResponse(resp *http.Response) (res TraditionUpdateRes,
 			return res, validate.InvalidContentType(ct)
 		}
 	}
-	return res, validate.UnexpectedStatusCode(resp.StatusCode)
+	return res, validate.UnexpectedStatusCodeWithResponse(resp)
 }
 
 func decodeTraditionsListResponse(resp *http.Response) (res []Tradition, _ error) {
@@ -2990,7 +3251,7 @@ func decodeTraditionsListResponse(resp *http.Response) (res []Tradition, _ error
 			return res, validate.InvalidContentType(ct)
 		}
 	}
-	return res, validate.UnexpectedStatusCode(resp.StatusCode)
+	return res, validate.UnexpectedStatusCodeWithResponse(resp)
 }
 
 func decodeUserAwardDisplayedResponse(resp *http.Response) (res *UserAwardDisplayedOK, _ error) {
@@ -2999,7 +3260,7 @@ func decodeUserAwardDisplayedResponse(resp *http.Response) (res *UserAwardDispla
 		// Code 200.
 		return &UserAwardDisplayedOK{}, nil
 	}
-	return res, validate.UnexpectedStatusCode(resp.StatusCode)
+	return res, validate.UnexpectedStatusCodeWithResponse(resp)
 }
 
 func decodeUserAwardsListResponse(resp *http.Response) (res *UserAwardsListOKHeaders, _ error) {
@@ -3097,7 +3358,7 @@ func decodeUserAwardsListResponse(resp *http.Response) (res *UserAwardsListOKHea
 							return err
 						}
 					} else {
-						return validate.ErrFieldRequired
+						return err
 					}
 					return nil
 				}(); err != nil {
@@ -3109,7 +3370,7 @@ func decodeUserAwardsListResponse(resp *http.Response) (res *UserAwardsListOKHea
 			return res, validate.InvalidContentType(ct)
 		}
 	}
-	return res, validate.UnexpectedStatusCode(resp.StatusCode)
+	return res, validate.UnexpectedStatusCodeWithResponse(resp)
 }
 
 func decodeUserProgressListResponse(resp *http.Response) (res *UserProgressListOKHeaders, _ error) {
@@ -3207,7 +3468,7 @@ func decodeUserProgressListResponse(resp *http.Response) (res *UserProgressListO
 							return err
 						}
 					} else {
-						return validate.ErrFieldRequired
+						return err
 					}
 					return nil
 				}(); err != nil {
@@ -3219,5 +3480,5 @@ func decodeUserProgressListResponse(resp *http.Response) (res *UserProgressListO
 			return res, validate.InvalidContentType(ct)
 		}
 	}
-	return res, validate.UnexpectedStatusCode(resp.StatusCode)
+	return res, validate.UnexpectedStatusCodeWithResponse(resp)
 }

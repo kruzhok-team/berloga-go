@@ -9,18 +9,22 @@ import (
 	"time"
 
 	"github.com/go-faster/errors"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/codes"
-	"go.opentelemetry.io/otel/metric"
-	semconv "go.opentelemetry.io/otel/semconv/v1.19.0"
-	"go.opentelemetry.io/otel/trace"
-
 	"github.com/ogen-go/ogen/conv"
 	ht "github.com/ogen-go/ogen/http"
 	"github.com/ogen-go/ogen/ogenerrors"
 	"github.com/ogen-go/ogen/otelogen"
 	"github.com/ogen-go/ogen/uri"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/metric"
+	semconv "go.opentelemetry.io/otel/semconv/v1.37.0"
+	"go.opentelemetry.io/otel/trace"
 )
+
+func trimTrailingSlashes(u *url.URL) {
+	u.Path = strings.TrimRight(u.Path, "/")
+	u.RawPath = strings.TrimRight(u.RawPath, "/")
+}
 
 // Invoker invokes operations described by OpenAPI v3 specification.
 type Invoker interface {
@@ -31,15 +35,31 @@ type Invoker interface {
 	//
 	// GET /awards
 	AwardsList(ctx context.Context, params AwardsListParams) (*AwardsListOKHeaders, error)
+	// ChallengeV2Read invokes ChallengeV2Read operation.
+	//
+	// Чтение испытания.
+	//
+	// GET /challenges/v2/{challenge_id}
+	ChallengeV2Read(ctx context.Context, params ChallengeV2ReadParams) (ChallengeV2ReadRes, error)
 	// ChallengesList invokes ChallengesList operation.
 	//
 	// Список испытаний.
 	//
+	// Deprecated: schema marks this operation as deprecated.
+	//
 	// GET /challenges
 	ChallengesList(ctx context.Context, params ChallengesListParams) (*ChallengesListOKHeaders, error)
+	// ChallengesV2List invokes ChallengesV2List operation.
+	//
+	// Список испытаний.
+	//
+	// GET /challenges/v2
+	ChallengesV2List(ctx context.Context, params ChallengesV2ListParams) (*ChallengesV2ListHeaders, error)
 	// ComplexChallengeCreate invokes ComplexChallengeCreate operation.
 	//
 	// > Достуно только для администрации.
+	//
+	// Deprecated: schema marks this operation as deprecated.
 	//
 	// POST /complexch
 	ComplexChallengeCreate(ctx context.Context, request *ComplexChallengeCreateReq) (ComplexChallengeCreateRes, error)
@@ -47,11 +67,15 @@ type Invoker interface {
 	//
 	// > Достуно только для администрации.
 	//
+	// Deprecated: schema marks this operation as deprecated.
+	//
 	// POST /complexch/{complexch_id}/goals
 	ComplexChallengeGoalCreate(ctx context.Context, request *ComplexChallengeGoalCreateReq, params ComplexChallengeGoalCreateParams) (ComplexChallengeGoalCreateRes, error)
 	// ComplexChallengeGoalDelete invokes ComplexChallengeGoalDelete operation.
 	//
 	// > Достуно только для администрации.
+	//
+	// Deprecated: schema marks this operation as deprecated.
 	//
 	// DELETE /complexch/goals/{goal_id}
 	ComplexChallengeGoalDelete(ctx context.Context, params ComplexChallengeGoalDeleteParams) (ComplexChallengeGoalDeleteRes, error)
@@ -59,17 +83,23 @@ type Invoker interface {
 	//
 	// > Достуно только для администрации.
 	//
+	// Deprecated: schema marks this operation as deprecated.
+	//
 	// GET /complexch/goals/{goal_id}
 	ComplexChallengeGoalRead(ctx context.Context, params ComplexChallengeGoalReadParams) (ComplexChallengeGoalReadRes, error)
 	// ComplexChallengeGoalUpdate invokes ComplexChallengeGoalUpdate operation.
 	//
 	// > Достуно только для администрации.
 	//
+	// Deprecated: schema marks this operation as deprecated.
+	//
 	// PATCH /complexch/goals/{goal_id}
 	ComplexChallengeGoalUpdate(ctx context.Context, request *ComplexChallengeGoalFields, params ComplexChallengeGoalUpdateParams) (ComplexChallengeGoalUpdateRes, error)
 	// ComplexChallengeGoalsList invokes ComplexChallengeGoalsList operation.
 	//
 	// > Достуно только для администрации.
+	//
+	// Deprecated: schema marks this operation as deprecated.
 	//
 	// GET /complexch/{complexch_id}/goals
 	ComplexChallengeGoalsList(ctx context.Context, params ComplexChallengeGoalsListParams) (ComplexChallengeGoalsListRes, error)
@@ -81,6 +111,8 @@ type Invoker interface {
 	// Подробнее см. в описании операции
 	// [ComplexChallengeValidate](#tag/complexch/operation/ComplexChallengeValidate).
 	//
+	// Deprecated: schema marks this operation as deprecated.
+	//
 	// PUT /complexch/{complexch_id}/public
 	ComplexChallengePublic(ctx context.Context, params ComplexChallengePublicParams) (ComplexChallengePublicRes, error)
 	// ComplexChallengeRead invokes ComplexChallengeRead operation.
@@ -90,11 +122,15 @@ type Invoker interface {
 	// Для массива `goals` так же требуются административные
 	// права, а так же явный запрос этого свойства.
 	//
+	// Deprecated: schema marks this operation as deprecated.
+	//
 	// GET /complexch/{complexch_id}
 	ComplexChallengeRead(ctx context.Context, params ComplexChallengeReadParams) (ComplexChallengeReadRes, error)
 	// ComplexChallengeUpdate invokes ComplexChallengeUpdate operation.
 	//
 	// > Достуно только для администрации.
+	//
+	// Deprecated: schema marks this operation as deprecated.
 	//
 	// PATCH /complexch/{complexch_id}
 	ComplexChallengeUpdate(ctx context.Context, request *ComplexChallengeUpdateReq, params ComplexChallengeUpdateParams) (ComplexChallengeUpdateRes, error)
@@ -113,17 +149,23 @@ type Invoker interface {
 	// Поля самого испытания не содержат префиксов, а только
 	// имена самих полей.
 	//
+	// Deprecated: schema marks this operation as deprecated.
+	//
 	// POST /complexch/{complexch_id}/validate
 	ComplexChallengeValidate(ctx context.Context, params ComplexChallengeValidateParams) (ComplexChallengeValidateRes, error)
 	// ComplexChallengesList invokes ComplexChallengesList operation.
 	//
 	// Список агрегатных испытаний.
 	//
+	// Deprecated: schema marks this operation as deprecated.
+	//
 	// GET /complexch
 	ComplexChallengesList(ctx context.Context, params ComplexChallengesListParams) (*ComplexChallengesListOKHeaders, error)
 	// ComplexChallengesResultsList invokes ComplexChallengesResultsList operation.
 	//
 	// Список результатов прохождения агрегатных испытаний.
+	//
+	// Deprecated: schema marks this operation as deprecated.
 	//
 	// GET /complexch/results
 	ComplexChallengesResultsList(ctx context.Context, params ComplexChallengesResultsListParams) (ComplexChallengesResultsListRes, error)
@@ -198,8 +240,25 @@ type Invoker interface {
 	// Обязателен для заполнения один из параметров `player_id` и
 	// `talent_id`.
 	//
+	// Deprecated: schema marks this operation as deprecated.
+	//
 	// GET /challenges/passed
 	PassedChallengesList(ctx context.Context, params PassedChallengesListParams) (PassedChallengesListRes, error)
+	// PassedChallengesV2List invokes PassedChallengesV2List operation.
+	//
+	// > Порядок сортировки результатов влияет на параметр
+	// `after`.
+	// >
+	// > При запросе в порядке *возрастания* (`asc`),
+	// > пропускаются идентификаторы *равные или менее*
+	// указанного.
+	// >
+	// > При запросе в порядке *убывания* (`desc`),
+	// > пропускаются идентификаторы *равные или более*
+	// указанного.
+	//
+	// GET /challenges/v2/passed
+	PassedChallengesV2List(ctx context.Context, params PassedChallengesV2ListParams) (*PassedChallengesV2ListHeaders, error)
 	// TraditionCreate invokes TraditionCreate operation.
 	//
 	// Добавление традиции.
@@ -260,11 +319,6 @@ type Client struct {
 	baseClient
 }
 
-func trimTrailingSlashes(u *url.URL) {
-	u.Path = strings.TrimRight(u.Path, "/")
-	u.RawPath = strings.TrimRight(u.RawPath, "/")
-}
-
 // NewClient initializes new Client defined by OAS.
 func NewClient(serverURL string, sec SecuritySource, opts ...ClientOption) (*Client, error) {
 	u, err := url.Parse(serverURL)
@@ -313,23 +367,24 @@ func (c *Client) AwardsList(ctx context.Context, params AwardsListParams) (*Awar
 func (c *Client) sendAwardsList(ctx context.Context, params AwardsListParams) (res *AwardsListOKHeaders, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("AwardsList"),
-		semconv.HTTPMethodKey.String("GET"),
-		semconv.HTTPRouteKey.String("/awards"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.URLTemplateKey.String("/awards"),
 	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
 
 	// Run stopwatch.
 	startTime := time.Now()
 	defer func() {
 		// Use floating point division here for higher precision (instead of Millisecond method).
 		elapsedDuration := time.Since(startTime)
-		c.duration.Record(ctx, float64(float64(elapsedDuration)/float64(time.Millisecond)), metric.WithAttributes(otelAttrs...))
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
 	}()
 
 	// Increment request counter.
 	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
 
 	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, "AwardsList",
+	ctx, span := c.cfg.Tracer.Start(ctx, AwardsListOperation,
 		trace.WithAttributes(otelAttrs...),
 		clientSpanKind,
 	)
@@ -478,9 +533,102 @@ func (c *Client) sendAwardsList(ctx context.Context, params AwardsListParams) (r
 	return result, nil
 }
 
+// ChallengeV2Read invokes ChallengeV2Read operation.
+//
+// Чтение испытания.
+//
+// GET /challenges/v2/{challenge_id}
+func (c *Client) ChallengeV2Read(ctx context.Context, params ChallengeV2ReadParams) (ChallengeV2ReadRes, error) {
+	res, err := c.sendChallengeV2Read(ctx, params)
+	return res, err
+}
+
+func (c *Client) sendChallengeV2Read(ctx context.Context, params ChallengeV2ReadParams) (res ChallengeV2ReadRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("ChallengeV2Read"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.URLTemplateKey.String("/challenges/v2/{challenge_id}"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, ChallengeV2ReadOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [2]string
+	pathParts[0] = "/challenges/v2/"
+	{
+		// Encode "challenge_id" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "challenge_id",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.Int32ToString(params.ChallengeID))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[1] = encoded
+	}
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "GET", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	defer resp.Body.Close()
+
+	stage = "DecodeResponse"
+	result, err := decodeChallengeV2ReadResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
 // ChallengesList invokes ChallengesList operation.
 //
 // Список испытаний.
+//
+// Deprecated: schema marks this operation as deprecated.
 //
 // GET /challenges
 func (c *Client) ChallengesList(ctx context.Context, params ChallengesListParams) (*ChallengesListOKHeaders, error) {
@@ -491,23 +639,24 @@ func (c *Client) ChallengesList(ctx context.Context, params ChallengesListParams
 func (c *Client) sendChallengesList(ctx context.Context, params ChallengesListParams) (res *ChallengesListOKHeaders, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("ChallengesList"),
-		semconv.HTTPMethodKey.String("GET"),
-		semconv.HTTPRouteKey.String("/challenges"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.URLTemplateKey.String("/challenges"),
 	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
 
 	// Run stopwatch.
 	startTime := time.Now()
 	defer func() {
 		// Use floating point division here for higher precision (instead of Millisecond method).
 		elapsedDuration := time.Since(startTime)
-		c.duration.Record(ctx, float64(float64(elapsedDuration)/float64(time.Millisecond)), metric.WithAttributes(otelAttrs...))
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
 	}()
 
 	// Increment request counter.
 	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
 
 	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, "ChallengesList",
+	ctx, span := c.cfg.Tracer.Start(ctx, ChallengesListOperation,
 		trace.WithAttributes(otelAttrs...),
 		clientSpanKind,
 	)
@@ -588,9 +737,122 @@ func (c *Client) sendChallengesList(ctx context.Context, params ChallengesListPa
 	return result, nil
 }
 
+// ChallengesV2List invokes ChallengesV2List operation.
+//
+// Список испытаний.
+//
+// GET /challenges/v2
+func (c *Client) ChallengesV2List(ctx context.Context, params ChallengesV2ListParams) (*ChallengesV2ListHeaders, error) {
+	res, err := c.sendChallengesV2List(ctx, params)
+	return res, err
+}
+
+func (c *Client) sendChallengesV2List(ctx context.Context, params ChallengesV2ListParams) (res *ChallengesV2ListHeaders, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("ChallengesV2List"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.URLTemplateKey.String("/challenges/v2"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, ChallengesV2ListOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/challenges/v2"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeQueryParams"
+	q := uri.NewQueryEncoder()
+	{
+		// Encode "after" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "after",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.After.Get(); ok {
+				return e.EncodeValue(conv.Int32ToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	{
+		// Encode "limit" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "limit",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.Limit.Get(); ok {
+				return e.EncodeValue(conv.Int32ToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	u.RawQuery = q.Values().Encode()
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "GET", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	defer resp.Body.Close()
+
+	stage = "DecodeResponse"
+	result, err := decodeChallengesV2ListResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
 // ComplexChallengeCreate invokes ComplexChallengeCreate operation.
 //
 // > Достуно только для администрации.
+//
+// Deprecated: schema marks this operation as deprecated.
 //
 // POST /complexch
 func (c *Client) ComplexChallengeCreate(ctx context.Context, request *ComplexChallengeCreateReq) (ComplexChallengeCreateRes, error) {
@@ -601,23 +863,24 @@ func (c *Client) ComplexChallengeCreate(ctx context.Context, request *ComplexCha
 func (c *Client) sendComplexChallengeCreate(ctx context.Context, request *ComplexChallengeCreateReq) (res ComplexChallengeCreateRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("ComplexChallengeCreate"),
-		semconv.HTTPMethodKey.String("POST"),
-		semconv.HTTPRouteKey.String("/complexch"),
+		semconv.HTTPRequestMethodKey.String("POST"),
+		semconv.URLTemplateKey.String("/complexch"),
 	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
 
 	// Run stopwatch.
 	startTime := time.Now()
 	defer func() {
 		// Use floating point division here for higher precision (instead of Millisecond method).
 		elapsedDuration := time.Since(startTime)
-		c.duration.Record(ctx, float64(float64(elapsedDuration)/float64(time.Millisecond)), metric.WithAttributes(otelAttrs...))
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
 	}()
 
 	// Increment request counter.
 	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
 
 	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, "ComplexChallengeCreate",
+	ctx, span := c.cfg.Tracer.Start(ctx, ComplexChallengeCreateOperation,
 		trace.WithAttributes(otelAttrs...),
 		clientSpanKind,
 	)
@@ -652,7 +915,7 @@ func (c *Client) sendComplexChallengeCreate(ctx context.Context, request *Comple
 		var satisfied bitset
 		{
 			stage = "Security:TalentOAuth"
-			switch err := c.securityTalentOAuth(ctx, "ComplexChallengeCreate", r); {
+			switch err := c.securityTalentOAuth(ctx, ComplexChallengeCreateOperation, r); {
 			case err == nil: // if NO error
 				satisfied[0] |= 1 << 0
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
@@ -700,6 +963,8 @@ func (c *Client) sendComplexChallengeCreate(ctx context.Context, request *Comple
 //
 // > Достуно только для администрации.
 //
+// Deprecated: schema marks this operation as deprecated.
+//
 // POST /complexch/{complexch_id}/goals
 func (c *Client) ComplexChallengeGoalCreate(ctx context.Context, request *ComplexChallengeGoalCreateReq, params ComplexChallengeGoalCreateParams) (ComplexChallengeGoalCreateRes, error) {
 	res, err := c.sendComplexChallengeGoalCreate(ctx, request, params)
@@ -709,23 +974,24 @@ func (c *Client) ComplexChallengeGoalCreate(ctx context.Context, request *Comple
 func (c *Client) sendComplexChallengeGoalCreate(ctx context.Context, request *ComplexChallengeGoalCreateReq, params ComplexChallengeGoalCreateParams) (res ComplexChallengeGoalCreateRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("ComplexChallengeGoalCreate"),
-		semconv.HTTPMethodKey.String("POST"),
-		semconv.HTTPRouteKey.String("/complexch/{complexch_id}/goals"),
+		semconv.HTTPRequestMethodKey.String("POST"),
+		semconv.URLTemplateKey.String("/complexch/{complexch_id}/goals"),
 	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
 
 	// Run stopwatch.
 	startTime := time.Now()
 	defer func() {
 		// Use floating point division here for higher precision (instead of Millisecond method).
 		elapsedDuration := time.Since(startTime)
-		c.duration.Record(ctx, float64(float64(elapsedDuration)/float64(time.Millisecond)), metric.WithAttributes(otelAttrs...))
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
 	}()
 
 	// Increment request counter.
 	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
 
 	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, "ComplexChallengeGoalCreate",
+	ctx, span := c.cfg.Tracer.Start(ctx, ComplexChallengeGoalCreateOperation,
 		trace.WithAttributes(otelAttrs...),
 		clientSpanKind,
 	)
@@ -779,7 +1045,7 @@ func (c *Client) sendComplexChallengeGoalCreate(ctx context.Context, request *Co
 		var satisfied bitset
 		{
 			stage = "Security:TalentOAuth"
-			switch err := c.securityTalentOAuth(ctx, "ComplexChallengeGoalCreate", r); {
+			switch err := c.securityTalentOAuth(ctx, ComplexChallengeGoalCreateOperation, r); {
 			case err == nil: // if NO error
 				satisfied[0] |= 1 << 0
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
@@ -827,6 +1093,8 @@ func (c *Client) sendComplexChallengeGoalCreate(ctx context.Context, request *Co
 //
 // > Достуно только для администрации.
 //
+// Deprecated: schema marks this operation as deprecated.
+//
 // DELETE /complexch/goals/{goal_id}
 func (c *Client) ComplexChallengeGoalDelete(ctx context.Context, params ComplexChallengeGoalDeleteParams) (ComplexChallengeGoalDeleteRes, error) {
 	res, err := c.sendComplexChallengeGoalDelete(ctx, params)
@@ -836,23 +1104,24 @@ func (c *Client) ComplexChallengeGoalDelete(ctx context.Context, params ComplexC
 func (c *Client) sendComplexChallengeGoalDelete(ctx context.Context, params ComplexChallengeGoalDeleteParams) (res ComplexChallengeGoalDeleteRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("ComplexChallengeGoalDelete"),
-		semconv.HTTPMethodKey.String("DELETE"),
-		semconv.HTTPRouteKey.String("/complexch/goals/{goal_id}"),
+		semconv.HTTPRequestMethodKey.String("DELETE"),
+		semconv.URLTemplateKey.String("/complexch/goals/{goal_id}"),
 	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
 
 	// Run stopwatch.
 	startTime := time.Now()
 	defer func() {
 		// Use floating point division here for higher precision (instead of Millisecond method).
 		elapsedDuration := time.Since(startTime)
-		c.duration.Record(ctx, float64(float64(elapsedDuration)/float64(time.Millisecond)), metric.WithAttributes(otelAttrs...))
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
 	}()
 
 	// Increment request counter.
 	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
 
 	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, "ComplexChallengeGoalDelete",
+	ctx, span := c.cfg.Tracer.Start(ctx, ComplexChallengeGoalDeleteOperation,
 		trace.WithAttributes(otelAttrs...),
 		clientSpanKind,
 	)
@@ -902,7 +1171,7 @@ func (c *Client) sendComplexChallengeGoalDelete(ctx context.Context, params Comp
 		var satisfied bitset
 		{
 			stage = "Security:TalentOAuth"
-			switch err := c.securityTalentOAuth(ctx, "ComplexChallengeGoalDelete", r); {
+			switch err := c.securityTalentOAuth(ctx, ComplexChallengeGoalDeleteOperation, r); {
 			case err == nil: // if NO error
 				satisfied[0] |= 1 << 0
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
@@ -950,6 +1219,8 @@ func (c *Client) sendComplexChallengeGoalDelete(ctx context.Context, params Comp
 //
 // > Достуно только для администрации.
 //
+// Deprecated: schema marks this operation as deprecated.
+//
 // GET /complexch/goals/{goal_id}
 func (c *Client) ComplexChallengeGoalRead(ctx context.Context, params ComplexChallengeGoalReadParams) (ComplexChallengeGoalReadRes, error) {
 	res, err := c.sendComplexChallengeGoalRead(ctx, params)
@@ -959,23 +1230,24 @@ func (c *Client) ComplexChallengeGoalRead(ctx context.Context, params ComplexCha
 func (c *Client) sendComplexChallengeGoalRead(ctx context.Context, params ComplexChallengeGoalReadParams) (res ComplexChallengeGoalReadRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("ComplexChallengeGoalRead"),
-		semconv.HTTPMethodKey.String("GET"),
-		semconv.HTTPRouteKey.String("/complexch/goals/{goal_id}"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.URLTemplateKey.String("/complexch/goals/{goal_id}"),
 	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
 
 	// Run stopwatch.
 	startTime := time.Now()
 	defer func() {
 		// Use floating point division here for higher precision (instead of Millisecond method).
 		elapsedDuration := time.Since(startTime)
-		c.duration.Record(ctx, float64(float64(elapsedDuration)/float64(time.Millisecond)), metric.WithAttributes(otelAttrs...))
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
 	}()
 
 	// Increment request counter.
 	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
 
 	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, "ComplexChallengeGoalRead",
+	ctx, span := c.cfg.Tracer.Start(ctx, ComplexChallengeGoalReadOperation,
 		trace.WithAttributes(otelAttrs...),
 		clientSpanKind,
 	)
@@ -1025,7 +1297,7 @@ func (c *Client) sendComplexChallengeGoalRead(ctx context.Context, params Comple
 		var satisfied bitset
 		{
 			stage = "Security:TalentOAuth"
-			switch err := c.securityTalentOAuth(ctx, "ComplexChallengeGoalRead", r); {
+			switch err := c.securityTalentOAuth(ctx, ComplexChallengeGoalReadOperation, r); {
 			case err == nil: // if NO error
 				satisfied[0] |= 1 << 0
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
@@ -1073,6 +1345,8 @@ func (c *Client) sendComplexChallengeGoalRead(ctx context.Context, params Comple
 //
 // > Достуно только для администрации.
 //
+// Deprecated: schema marks this operation as deprecated.
+//
 // PATCH /complexch/goals/{goal_id}
 func (c *Client) ComplexChallengeGoalUpdate(ctx context.Context, request *ComplexChallengeGoalFields, params ComplexChallengeGoalUpdateParams) (ComplexChallengeGoalUpdateRes, error) {
 	res, err := c.sendComplexChallengeGoalUpdate(ctx, request, params)
@@ -1082,23 +1356,24 @@ func (c *Client) ComplexChallengeGoalUpdate(ctx context.Context, request *Comple
 func (c *Client) sendComplexChallengeGoalUpdate(ctx context.Context, request *ComplexChallengeGoalFields, params ComplexChallengeGoalUpdateParams) (res ComplexChallengeGoalUpdateRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("ComplexChallengeGoalUpdate"),
-		semconv.HTTPMethodKey.String("PATCH"),
-		semconv.HTTPRouteKey.String("/complexch/goals/{goal_id}"),
+		semconv.HTTPRequestMethodKey.String("PATCH"),
+		semconv.URLTemplateKey.String("/complexch/goals/{goal_id}"),
 	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
 
 	// Run stopwatch.
 	startTime := time.Now()
 	defer func() {
 		// Use floating point division here for higher precision (instead of Millisecond method).
 		elapsedDuration := time.Since(startTime)
-		c.duration.Record(ctx, float64(float64(elapsedDuration)/float64(time.Millisecond)), metric.WithAttributes(otelAttrs...))
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
 	}()
 
 	// Increment request counter.
 	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
 
 	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, "ComplexChallengeGoalUpdate",
+	ctx, span := c.cfg.Tracer.Start(ctx, ComplexChallengeGoalUpdateOperation,
 		trace.WithAttributes(otelAttrs...),
 		clientSpanKind,
 	)
@@ -1151,7 +1426,7 @@ func (c *Client) sendComplexChallengeGoalUpdate(ctx context.Context, request *Co
 		var satisfied bitset
 		{
 			stage = "Security:TalentOAuth"
-			switch err := c.securityTalentOAuth(ctx, "ComplexChallengeGoalUpdate", r); {
+			switch err := c.securityTalentOAuth(ctx, ComplexChallengeGoalUpdateOperation, r); {
 			case err == nil: // if NO error
 				satisfied[0] |= 1 << 0
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
@@ -1199,6 +1474,8 @@ func (c *Client) sendComplexChallengeGoalUpdate(ctx context.Context, request *Co
 //
 // > Достуно только для администрации.
 //
+// Deprecated: schema marks this operation as deprecated.
+//
 // GET /complexch/{complexch_id}/goals
 func (c *Client) ComplexChallengeGoalsList(ctx context.Context, params ComplexChallengeGoalsListParams) (ComplexChallengeGoalsListRes, error) {
 	res, err := c.sendComplexChallengeGoalsList(ctx, params)
@@ -1208,23 +1485,24 @@ func (c *Client) ComplexChallengeGoalsList(ctx context.Context, params ComplexCh
 func (c *Client) sendComplexChallengeGoalsList(ctx context.Context, params ComplexChallengeGoalsListParams) (res ComplexChallengeGoalsListRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("ComplexChallengeGoalsList"),
-		semconv.HTTPMethodKey.String("GET"),
-		semconv.HTTPRouteKey.String("/complexch/{complexch_id}/goals"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.URLTemplateKey.String("/complexch/{complexch_id}/goals"),
 	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
 
 	// Run stopwatch.
 	startTime := time.Now()
 	defer func() {
 		// Use floating point division here for higher precision (instead of Millisecond method).
 		elapsedDuration := time.Since(startTime)
-		c.duration.Record(ctx, float64(float64(elapsedDuration)/float64(time.Millisecond)), metric.WithAttributes(otelAttrs...))
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
 	}()
 
 	// Increment request counter.
 	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
 
 	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, "ComplexChallengeGoalsList",
+	ctx, span := c.cfg.Tracer.Start(ctx, ComplexChallengeGoalsListOperation,
 		trace.WithAttributes(otelAttrs...),
 		clientSpanKind,
 	)
@@ -1275,7 +1553,7 @@ func (c *Client) sendComplexChallengeGoalsList(ctx context.Context, params Compl
 		var satisfied bitset
 		{
 			stage = "Security:TalentOAuth"
-			switch err := c.securityTalentOAuth(ctx, "ComplexChallengeGoalsList", r); {
+			switch err := c.securityTalentOAuth(ctx, ComplexChallengeGoalsListOperation, r); {
 			case err == nil: // if NO error
 				satisfied[0] |= 1 << 0
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
@@ -1327,6 +1605,8 @@ func (c *Client) sendComplexChallengeGoalsList(ctx context.Context, params Compl
 // Подробнее см. в описании операции
 // [ComplexChallengeValidate](#tag/complexch/operation/ComplexChallengeValidate).
 //
+// Deprecated: schema marks this operation as deprecated.
+//
 // PUT /complexch/{complexch_id}/public
 func (c *Client) ComplexChallengePublic(ctx context.Context, params ComplexChallengePublicParams) (ComplexChallengePublicRes, error) {
 	res, err := c.sendComplexChallengePublic(ctx, params)
@@ -1336,23 +1616,24 @@ func (c *Client) ComplexChallengePublic(ctx context.Context, params ComplexChall
 func (c *Client) sendComplexChallengePublic(ctx context.Context, params ComplexChallengePublicParams) (res ComplexChallengePublicRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("ComplexChallengePublic"),
-		semconv.HTTPMethodKey.String("PUT"),
-		semconv.HTTPRouteKey.String("/complexch/{complexch_id}/public"),
+		semconv.HTTPRequestMethodKey.String("PUT"),
+		semconv.URLTemplateKey.String("/complexch/{complexch_id}/public"),
 	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
 
 	// Run stopwatch.
 	startTime := time.Now()
 	defer func() {
 		// Use floating point division here for higher precision (instead of Millisecond method).
 		elapsedDuration := time.Since(startTime)
-		c.duration.Record(ctx, float64(float64(elapsedDuration)/float64(time.Millisecond)), metric.WithAttributes(otelAttrs...))
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
 	}()
 
 	// Increment request counter.
 	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
 
 	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, "ComplexChallengePublic",
+	ctx, span := c.cfg.Tracer.Start(ctx, ComplexChallengePublicOperation,
 		trace.WithAttributes(otelAttrs...),
 		clientSpanKind,
 	)
@@ -1421,7 +1702,7 @@ func (c *Client) sendComplexChallengePublic(ctx context.Context, params ComplexC
 		var satisfied bitset
 		{
 			stage = "Security:TalentOAuth"
-			switch err := c.securityTalentOAuth(ctx, "ComplexChallengePublic", r); {
+			switch err := c.securityTalentOAuth(ctx, ComplexChallengePublicOperation, r); {
 			case err == nil: // if NO error
 				satisfied[0] |= 1 << 0
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
@@ -1472,6 +1753,8 @@ func (c *Client) sendComplexChallengePublic(ctx context.Context, params ComplexC
 // Для массива `goals` так же требуются административные
 // права, а так же явный запрос этого свойства.
 //
+// Deprecated: schema marks this operation as deprecated.
+//
 // GET /complexch/{complexch_id}
 func (c *Client) ComplexChallengeRead(ctx context.Context, params ComplexChallengeReadParams) (ComplexChallengeReadRes, error) {
 	res, err := c.sendComplexChallengeRead(ctx, params)
@@ -1481,23 +1764,24 @@ func (c *Client) ComplexChallengeRead(ctx context.Context, params ComplexChallen
 func (c *Client) sendComplexChallengeRead(ctx context.Context, params ComplexChallengeReadParams) (res ComplexChallengeReadRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("ComplexChallengeRead"),
-		semconv.HTTPMethodKey.String("GET"),
-		semconv.HTTPRouteKey.String("/complexch/{complexch_id}"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.URLTemplateKey.String("/complexch/{complexch_id}"),
 	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
 
 	// Run stopwatch.
 	startTime := time.Now()
 	defer func() {
 		// Use floating point division here for higher precision (instead of Millisecond method).
 		elapsedDuration := time.Since(startTime)
-		c.duration.Record(ctx, float64(float64(elapsedDuration)/float64(time.Millisecond)), metric.WithAttributes(otelAttrs...))
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
 	}()
 
 	// Increment request counter.
 	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
 
 	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, "ComplexChallengeRead",
+	ctx, span := c.cfg.Tracer.Start(ctx, ComplexChallengeReadOperation,
 		trace.WithAttributes(otelAttrs...),
 		clientSpanKind,
 	)
@@ -1568,7 +1852,7 @@ func (c *Client) sendComplexChallengeRead(ctx context.Context, params ComplexCha
 		var satisfied bitset
 		{
 			stage = "Security:TalentOAuth"
-			switch err := c.securityTalentOAuth(ctx, "ComplexChallengeRead", r); {
+			switch err := c.securityTalentOAuth(ctx, ComplexChallengeReadOperation, r); {
 			case err == nil: // if NO error
 				satisfied[0] |= 1 << 0
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
@@ -1616,6 +1900,8 @@ func (c *Client) sendComplexChallengeRead(ctx context.Context, params ComplexCha
 //
 // > Достуно только для администрации.
 //
+// Deprecated: schema marks this operation as deprecated.
+//
 // PATCH /complexch/{complexch_id}
 func (c *Client) ComplexChallengeUpdate(ctx context.Context, request *ComplexChallengeUpdateReq, params ComplexChallengeUpdateParams) (ComplexChallengeUpdateRes, error) {
 	res, err := c.sendComplexChallengeUpdate(ctx, request, params)
@@ -1625,23 +1911,24 @@ func (c *Client) ComplexChallengeUpdate(ctx context.Context, request *ComplexCha
 func (c *Client) sendComplexChallengeUpdate(ctx context.Context, request *ComplexChallengeUpdateReq, params ComplexChallengeUpdateParams) (res ComplexChallengeUpdateRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("ComplexChallengeUpdate"),
-		semconv.HTTPMethodKey.String("PATCH"),
-		semconv.HTTPRouteKey.String("/complexch/{complexch_id}"),
+		semconv.HTTPRequestMethodKey.String("PATCH"),
+		semconv.URLTemplateKey.String("/complexch/{complexch_id}"),
 	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
 
 	// Run stopwatch.
 	startTime := time.Now()
 	defer func() {
 		// Use floating point division here for higher precision (instead of Millisecond method).
 		elapsedDuration := time.Since(startTime)
-		c.duration.Record(ctx, float64(float64(elapsedDuration)/float64(time.Millisecond)), metric.WithAttributes(otelAttrs...))
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
 	}()
 
 	// Increment request counter.
 	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
 
 	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, "ComplexChallengeUpdate",
+	ctx, span := c.cfg.Tracer.Start(ctx, ComplexChallengeUpdateOperation,
 		trace.WithAttributes(otelAttrs...),
 		clientSpanKind,
 	)
@@ -1694,7 +1981,7 @@ func (c *Client) sendComplexChallengeUpdate(ctx context.Context, request *Comple
 		var satisfied bitset
 		{
 			stage = "Security:TalentOAuth"
-			switch err := c.securityTalentOAuth(ctx, "ComplexChallengeUpdate", r); {
+			switch err := c.securityTalentOAuth(ctx, ComplexChallengeUpdateOperation, r); {
 			case err == nil: // if NO error
 				satisfied[0] |= 1 << 0
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
@@ -1753,6 +2040,8 @@ func (c *Client) sendComplexChallengeUpdate(ctx context.Context, request *Comple
 // Поля самого испытания не содержат префиксов, а только
 // имена самих полей.
 //
+// Deprecated: schema marks this operation as deprecated.
+//
 // POST /complexch/{complexch_id}/validate
 func (c *Client) ComplexChallengeValidate(ctx context.Context, params ComplexChallengeValidateParams) (ComplexChallengeValidateRes, error) {
 	res, err := c.sendComplexChallengeValidate(ctx, params)
@@ -1762,23 +2051,24 @@ func (c *Client) ComplexChallengeValidate(ctx context.Context, params ComplexCha
 func (c *Client) sendComplexChallengeValidate(ctx context.Context, params ComplexChallengeValidateParams) (res ComplexChallengeValidateRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("ComplexChallengeValidate"),
-		semconv.HTTPMethodKey.String("POST"),
-		semconv.HTTPRouteKey.String("/complexch/{complexch_id}/validate"),
+		semconv.HTTPRequestMethodKey.String("POST"),
+		semconv.URLTemplateKey.String("/complexch/{complexch_id}/validate"),
 	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
 
 	// Run stopwatch.
 	startTime := time.Now()
 	defer func() {
 		// Use floating point division here for higher precision (instead of Millisecond method).
 		elapsedDuration := time.Since(startTime)
-		c.duration.Record(ctx, float64(float64(elapsedDuration)/float64(time.Millisecond)), metric.WithAttributes(otelAttrs...))
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
 	}()
 
 	// Increment request counter.
 	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
 
 	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, "ComplexChallengeValidate",
+	ctx, span := c.cfg.Tracer.Start(ctx, ComplexChallengeValidateOperation,
 		trace.WithAttributes(otelAttrs...),
 		clientSpanKind,
 	)
@@ -1829,7 +2119,7 @@ func (c *Client) sendComplexChallengeValidate(ctx context.Context, params Comple
 		var satisfied bitset
 		{
 			stage = "Security:TalentOAuth"
-			switch err := c.securityTalentOAuth(ctx, "ComplexChallengeValidate", r); {
+			switch err := c.securityTalentOAuth(ctx, ComplexChallengeValidateOperation, r); {
 			case err == nil: // if NO error
 				satisfied[0] |= 1 << 0
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
@@ -1877,6 +2167,8 @@ func (c *Client) sendComplexChallengeValidate(ctx context.Context, params Comple
 //
 // Список агрегатных испытаний.
 //
+// Deprecated: schema marks this operation as deprecated.
+//
 // GET /complexch
 func (c *Client) ComplexChallengesList(ctx context.Context, params ComplexChallengesListParams) (*ComplexChallengesListOKHeaders, error) {
 	res, err := c.sendComplexChallengesList(ctx, params)
@@ -1886,23 +2178,24 @@ func (c *Client) ComplexChallengesList(ctx context.Context, params ComplexChalle
 func (c *Client) sendComplexChallengesList(ctx context.Context, params ComplexChallengesListParams) (res *ComplexChallengesListOKHeaders, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("ComplexChallengesList"),
-		semconv.HTTPMethodKey.String("GET"),
-		semconv.HTTPRouteKey.String("/complexch"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.URLTemplateKey.String("/complexch"),
 	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
 
 	// Run stopwatch.
 	startTime := time.Now()
 	defer func() {
 		// Use floating point division here for higher precision (instead of Millisecond method).
 		elapsedDuration := time.Since(startTime)
-		c.duration.Record(ctx, float64(float64(elapsedDuration)/float64(time.Millisecond)), metric.WithAttributes(otelAttrs...))
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
 	}()
 
 	// Increment request counter.
 	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
 
 	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, "ComplexChallengesList",
+	ctx, span := c.cfg.Tracer.Start(ctx, ComplexChallengesListOperation,
 		trace.WithAttributes(otelAttrs...),
 		clientSpanKind,
 	)
@@ -2021,6 +2314,8 @@ func (c *Client) sendComplexChallengesList(ctx context.Context, params ComplexCh
 //
 // Список результатов прохождения агрегатных испытаний.
 //
+// Deprecated: schema marks this operation as deprecated.
+//
 // GET /complexch/results
 func (c *Client) ComplexChallengesResultsList(ctx context.Context, params ComplexChallengesResultsListParams) (ComplexChallengesResultsListRes, error) {
 	res, err := c.sendComplexChallengesResultsList(ctx, params)
@@ -2030,23 +2325,24 @@ func (c *Client) ComplexChallengesResultsList(ctx context.Context, params Comple
 func (c *Client) sendComplexChallengesResultsList(ctx context.Context, params ComplexChallengesResultsListParams) (res ComplexChallengesResultsListRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("ComplexChallengesResultsList"),
-		semconv.HTTPMethodKey.String("GET"),
-		semconv.HTTPRouteKey.String("/complexch/results"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.URLTemplateKey.String("/complexch/results"),
 	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
 
 	// Run stopwatch.
 	startTime := time.Now()
 	defer func() {
 		// Use floating point division here for higher precision (instead of Millisecond method).
 		elapsedDuration := time.Since(startTime)
-		c.duration.Record(ctx, float64(float64(elapsedDuration)/float64(time.Millisecond)), metric.WithAttributes(otelAttrs...))
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
 	}()
 
 	// Increment request counter.
 	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
 
 	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, "ComplexChallengesResultsList",
+	ctx, span := c.cfg.Tracer.Start(ctx, ComplexChallengesResultsListOperation,
 		trace.WithAttributes(otelAttrs...),
 		clientSpanKind,
 	)
@@ -2223,23 +2519,24 @@ func (c *Client) FormulaParse(ctx context.Context, request *FormulaParseReq) (Fo
 func (c *Client) sendFormulaParse(ctx context.Context, request *FormulaParseReq) (res FormulaParseRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("FormulaParse"),
-		semconv.HTTPMethodKey.String("POST"),
-		semconv.HTTPRouteKey.String("/formula"),
+		semconv.HTTPRequestMethodKey.String("POST"),
+		semconv.URLTemplateKey.String("/formula"),
 	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
 
 	// Run stopwatch.
 	startTime := time.Now()
 	defer func() {
 		// Use floating point division here for higher precision (instead of Millisecond method).
 		elapsedDuration := time.Since(startTime)
-		c.duration.Record(ctx, float64(float64(elapsedDuration)/float64(time.Millisecond)), metric.WithAttributes(otelAttrs...))
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
 	}()
 
 	// Increment request counter.
 	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
 
 	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, "FormulaParse",
+	ctx, span := c.cfg.Tracer.Start(ctx, FormulaParseOperation,
 		trace.WithAttributes(otelAttrs...),
 		clientSpanKind,
 	)
@@ -2274,7 +2571,7 @@ func (c *Client) sendFormulaParse(ctx context.Context, request *FormulaParseReq)
 		var satisfied bitset
 		{
 			stage = "Security:TalentOAuth"
-			switch err := c.securityTalentOAuth(ctx, "FormulaParse", r); {
+			switch err := c.securityTalentOAuth(ctx, FormulaParseOperation, r); {
 			case err == nil: // if NO error
 				satisfied[0] |= 1 << 0
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
@@ -2331,23 +2628,24 @@ func (c *Client) InstrumentCreate(ctx context.Context, request *InstrumentCreate
 func (c *Client) sendInstrumentCreate(ctx context.Context, request *InstrumentCreateRequest) (res InstrumentCreateRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("InstrumentCreate"),
-		semconv.HTTPMethodKey.String("POST"),
-		semconv.HTTPRouteKey.String("/instruments"),
+		semconv.HTTPRequestMethodKey.String("POST"),
+		semconv.URLTemplateKey.String("/instruments"),
 	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
 
 	// Run stopwatch.
 	startTime := time.Now()
 	defer func() {
 		// Use floating point division here for higher precision (instead of Millisecond method).
 		elapsedDuration := time.Since(startTime)
-		c.duration.Record(ctx, float64(float64(elapsedDuration)/float64(time.Millisecond)), metric.WithAttributes(otelAttrs...))
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
 	}()
 
 	// Increment request counter.
 	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
 
 	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, "InstrumentCreate",
+	ctx, span := c.cfg.Tracer.Start(ctx, InstrumentCreateOperation,
 		trace.WithAttributes(otelAttrs...),
 		clientSpanKind,
 	)
@@ -2382,7 +2680,7 @@ func (c *Client) sendInstrumentCreate(ctx context.Context, request *InstrumentCr
 		var satisfied bitset
 		{
 			stage = "Security:TalentOAuth"
-			switch err := c.securityTalentOAuth(ctx, "InstrumentCreate", r); {
+			switch err := c.securityTalentOAuth(ctx, InstrumentCreateOperation, r); {
 			case err == nil: // if NO error
 				satisfied[0] |= 1 << 0
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
@@ -2439,23 +2737,24 @@ func (c *Client) InstrumentRead(ctx context.Context, params InstrumentReadParams
 func (c *Client) sendInstrumentRead(ctx context.Context, params InstrumentReadParams) (res InstrumentReadRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("InstrumentRead"),
-		semconv.HTTPMethodKey.String("GET"),
-		semconv.HTTPRouteKey.String("/instruments/{instrument_id}"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.URLTemplateKey.String("/instruments/{instrument_id}"),
 	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
 
 	// Run stopwatch.
 	startTime := time.Now()
 	defer func() {
 		// Use floating point division here for higher precision (instead of Millisecond method).
 		elapsedDuration := time.Since(startTime)
-		c.duration.Record(ctx, float64(float64(elapsedDuration)/float64(time.Millisecond)), metric.WithAttributes(otelAttrs...))
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
 	}()
 
 	// Increment request counter.
 	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
 
 	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, "InstrumentRead",
+	ctx, span := c.cfg.Tracer.Start(ctx, InstrumentReadOperation,
 		trace.WithAttributes(otelAttrs...),
 		clientSpanKind,
 	)
@@ -2529,23 +2828,24 @@ func (c *Client) InstrumentUpdate(ctx context.Context, request *InstrumentUpdate
 func (c *Client) sendInstrumentUpdate(ctx context.Context, request *InstrumentUpdateRequest, params InstrumentUpdateParams) (res InstrumentUpdateRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("InstrumentUpdate"),
-		semconv.HTTPMethodKey.String("PATCH"),
-		semconv.HTTPRouteKey.String("/instruments/{instrument_id}"),
+		semconv.HTTPRequestMethodKey.String("PATCH"),
+		semconv.URLTemplateKey.String("/instruments/{instrument_id}"),
 	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
 
 	// Run stopwatch.
 	startTime := time.Now()
 	defer func() {
 		// Use floating point division here for higher precision (instead of Millisecond method).
 		elapsedDuration := time.Since(startTime)
-		c.duration.Record(ctx, float64(float64(elapsedDuration)/float64(time.Millisecond)), metric.WithAttributes(otelAttrs...))
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
 	}()
 
 	// Increment request counter.
 	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
 
 	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, "InstrumentUpdate",
+	ctx, span := c.cfg.Tracer.Start(ctx, InstrumentUpdateOperation,
 		trace.WithAttributes(otelAttrs...),
 		clientSpanKind,
 	)
@@ -2598,7 +2898,7 @@ func (c *Client) sendInstrumentUpdate(ctx context.Context, request *InstrumentUp
 		var satisfied bitset
 		{
 			stage = "Security:TalentOAuth"
-			switch err := c.securityTalentOAuth(ctx, "InstrumentUpdate", r); {
+			switch err := c.securityTalentOAuth(ctx, InstrumentUpdateOperation, r); {
 			case err == nil: // if NO error
 				satisfied[0] |= 1 << 0
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
@@ -2655,23 +2955,24 @@ func (c *Client) InstrumentsList(ctx context.Context, params InstrumentsListPara
 func (c *Client) sendInstrumentsList(ctx context.Context, params InstrumentsListParams) (res *InstrumentsListOKHeaders, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("InstrumentsList"),
-		semconv.HTTPMethodKey.String("GET"),
-		semconv.HTTPRouteKey.String("/instruments"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.URLTemplateKey.String("/instruments"),
 	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
 
 	// Run stopwatch.
 	startTime := time.Now()
 	defer func() {
 		// Use floating point division here for higher precision (instead of Millisecond method).
 		elapsedDuration := time.Since(startTime)
-		c.duration.Record(ctx, float64(float64(elapsedDuration)/float64(time.Millisecond)), metric.WithAttributes(otelAttrs...))
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
 	}()
 
 	// Increment request counter.
 	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
 
 	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, "InstrumentsList",
+	ctx, span := c.cfg.Tracer.Start(ctx, InstrumentsListOperation,
 		trace.WithAttributes(otelAttrs...),
 		clientSpanKind,
 	)
@@ -2771,16 +3072,19 @@ func (c *Client) sendInstrumentsList(ctx context.Context, params InstrumentsList
 		}
 
 		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
-			return e.EncodeArray(func(e uri.Encoder) error {
-				for i, item := range params.ID {
-					if err := func() error {
-						return e.EncodeValue(conv.Int32ToString(item))
-					}(); err != nil {
-						return errors.Wrapf(err, "[%d]", i)
+			if params.ID != nil {
+				return e.EncodeArray(func(e uri.Encoder) error {
+					for i, item := range params.ID {
+						if err := func() error {
+							return e.EncodeValue(conv.Int32ToString(item))
+						}(); err != nil {
+							return errors.Wrapf(err, "[%d]", i)
+						}
 					}
-				}
-				return nil
-			})
+					return nil
+				})
+			}
+			return nil
 		}); err != nil {
 			return res, errors.Wrap(err, "encode query")
 		}
@@ -2794,16 +3098,19 @@ func (c *Client) sendInstrumentsList(ctx context.Context, params InstrumentsList
 		}
 
 		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
-			return e.EncodeArray(func(e uri.Encoder) error {
-				for i, item := range params.TID {
-					if err := func() error {
-						return e.EncodeValue(conv.Int32ToString(item))
-					}(); err != nil {
-						return errors.Wrapf(err, "[%d]", i)
+			if params.TID != nil {
+				return e.EncodeArray(func(e uri.Encoder) error {
+					for i, item := range params.TID {
+						if err := func() error {
+							return e.EncodeValue(conv.Int32ToString(item))
+						}(); err != nil {
+							return errors.Wrapf(err, "[%d]", i)
+						}
 					}
-				}
-				return nil
-			})
+					return nil
+				})
+			}
+			return nil
 		}); err != nil {
 			return res, errors.Wrap(err, "encode query")
 		}
@@ -2817,16 +3124,19 @@ func (c *Client) sendInstrumentsList(ctx context.Context, params InstrumentsList
 		}
 
 		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
-			return e.EncodeArray(func(e uri.Encoder) error {
-				for i, item := range params.CID {
-					if err := func() error {
-						return e.EncodeValue(conv.Int32ToString(item))
-					}(); err != nil {
-						return errors.Wrapf(err, "[%d]", i)
+			if params.CID != nil {
+				return e.EncodeArray(func(e uri.Encoder) error {
+					for i, item := range params.CID {
+						if err := func() error {
+							return e.EncodeValue(conv.Int32ToString(item))
+						}(); err != nil {
+							return errors.Wrapf(err, "[%d]", i)
+						}
 					}
-				}
-				return nil
-			})
+					return nil
+				})
+			}
+			return nil
 		}); err != nil {
 			return res, errors.Wrap(err, "encode query")
 		}
@@ -2898,6 +3208,8 @@ func (c *Client) sendInstrumentsList(ctx context.Context, params InstrumentsList
 // Обязателен для заполнения один из параметров `player_id` и
 // `talent_id`.
 //
+// Deprecated: schema marks this operation as deprecated.
+//
 // GET /challenges/passed
 func (c *Client) PassedChallengesList(ctx context.Context, params PassedChallengesListParams) (PassedChallengesListRes, error) {
 	res, err := c.sendPassedChallengesList(ctx, params)
@@ -2907,23 +3219,24 @@ func (c *Client) PassedChallengesList(ctx context.Context, params PassedChalleng
 func (c *Client) sendPassedChallengesList(ctx context.Context, params PassedChallengesListParams) (res PassedChallengesListRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("PassedChallengesList"),
-		semconv.HTTPMethodKey.String("GET"),
-		semconv.HTTPRouteKey.String("/challenges/passed"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.URLTemplateKey.String("/challenges/passed"),
 	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
 
 	// Run stopwatch.
 	startTime := time.Now()
 	defer func() {
 		// Use floating point division here for higher precision (instead of Millisecond method).
 		elapsedDuration := time.Since(startTime)
-		c.duration.Record(ctx, float64(float64(elapsedDuration)/float64(time.Millisecond)), metric.WithAttributes(otelAttrs...))
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
 	}()
 
 	// Increment request counter.
 	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
 
 	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, "PassedChallengesList",
+	ctx, span := c.cfg.Tracer.Start(ctx, PassedChallengesListOperation,
 		trace.WithAttributes(otelAttrs...),
 		clientSpanKind,
 	)
@@ -3027,7 +3340,7 @@ func (c *Client) sendPassedChallengesList(ctx context.Context, params PassedChal
 		var satisfied bitset
 		{
 			stage = "Security:TalentOAuth"
-			switch err := c.securityTalentOAuth(ctx, "PassedChallengesList", r); {
+			switch err := c.securityTalentOAuth(ctx, PassedChallengesListOperation, r); {
 			case err == nil: // if NO error
 				satisfied[0] |= 1 << 0
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
@@ -3038,7 +3351,7 @@ func (c *Client) sendPassedChallengesList(ctx context.Context, params PassedChal
 		}
 		{
 			stage = "Security:BerlogaJWT"
-			switch err := c.securityBerlogaJWT(ctx, "PassedChallengesList", r); {
+			switch err := c.securityBerlogaJWT(ctx, PassedChallengesListOperation, r); {
 			case err == nil: // if NO error
 				satisfied[0] |= 1 << 1
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
@@ -3084,6 +3397,177 @@ func (c *Client) sendPassedChallengesList(ctx context.Context, params PassedChal
 	return result, nil
 }
 
+// PassedChallengesV2List invokes PassedChallengesV2List operation.
+//
+// > Порядок сортировки результатов влияет на параметр
+// `after`.
+// >
+// > При запросе в порядке *возрастания* (`asc`),
+// > пропускаются идентификаторы *равные или менее*
+// указанного.
+// >
+// > При запросе в порядке *убывания* (`desc`),
+// > пропускаются идентификаторы *равные или более*
+// указанного.
+//
+// GET /challenges/v2/passed
+func (c *Client) PassedChallengesV2List(ctx context.Context, params PassedChallengesV2ListParams) (*PassedChallengesV2ListHeaders, error) {
+	res, err := c.sendPassedChallengesV2List(ctx, params)
+	return res, err
+}
+
+func (c *Client) sendPassedChallengesV2List(ctx context.Context, params PassedChallengesV2ListParams) (res *PassedChallengesV2ListHeaders, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("PassedChallengesV2List"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.URLTemplateKey.String("/challenges/v2/passed"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, PassedChallengesV2ListOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/challenges/v2/passed"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeQueryParams"
+	q := uri.NewQueryEncoder()
+	{
+		// Encode "after" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "after",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.After.Get(); ok {
+				return e.EncodeValue(conv.Int64ToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	{
+		// Encode "limit" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "limit",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.Limit.Get(); ok {
+				return e.EncodeValue(conv.Int32ToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	{
+		// Encode "challenge_id" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "challenge_id",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.ChallengeID.Get(); ok {
+				return e.EncodeValue(conv.Int32ToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	{
+		// Encode "user_id" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "user_id",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.UserID.Get(); ok {
+				return e.EncodeValue(conv.Int32ToString(val))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	{
+		// Encode "order_by" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "order_by",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			if val, ok := params.OrderBy.Get(); ok {
+				return e.EncodeValue(conv.StringToString(string(val)))
+			}
+			return nil
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	u.RawQuery = q.Values().Encode()
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "GET", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	defer resp.Body.Close()
+
+	stage = "DecodeResponse"
+	result, err := decodePassedChallengesV2ListResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
 // TraditionCreate invokes TraditionCreate operation.
 //
 // Добавление традиции.
@@ -3097,23 +3581,24 @@ func (c *Client) TraditionCreate(ctx context.Context, request *TraditionCreateRe
 func (c *Client) sendTraditionCreate(ctx context.Context, request *TraditionCreateRequest) (res TraditionCreateRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("TraditionCreate"),
-		semconv.HTTPMethodKey.String("POST"),
-		semconv.HTTPRouteKey.String("/traditions"),
+		semconv.HTTPRequestMethodKey.String("POST"),
+		semconv.URLTemplateKey.String("/traditions"),
 	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
 
 	// Run stopwatch.
 	startTime := time.Now()
 	defer func() {
 		// Use floating point division here for higher precision (instead of Millisecond method).
 		elapsedDuration := time.Since(startTime)
-		c.duration.Record(ctx, float64(float64(elapsedDuration)/float64(time.Millisecond)), metric.WithAttributes(otelAttrs...))
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
 	}()
 
 	// Increment request counter.
 	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
 
 	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, "TraditionCreate",
+	ctx, span := c.cfg.Tracer.Start(ctx, TraditionCreateOperation,
 		trace.WithAttributes(otelAttrs...),
 		clientSpanKind,
 	)
@@ -3148,7 +3633,7 @@ func (c *Client) sendTraditionCreate(ctx context.Context, request *TraditionCrea
 		var satisfied bitset
 		{
 			stage = "Security:TalentOAuth"
-			switch err := c.securityTalentOAuth(ctx, "TraditionCreate", r); {
+			switch err := c.securityTalentOAuth(ctx, TraditionCreateOperation, r); {
 			case err == nil: // if NO error
 				satisfied[0] |= 1 << 0
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
@@ -3205,23 +3690,24 @@ func (c *Client) TraditionInstrumentsList(ctx context.Context, params TraditionI
 func (c *Client) sendTraditionInstrumentsList(ctx context.Context, params TraditionInstrumentsListParams) (res []Instrument, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("TraditionInstrumentsList"),
-		semconv.HTTPMethodKey.String("GET"),
-		semconv.HTTPRouteKey.String("/traditions/{tradition_id}/instruments"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.URLTemplateKey.String("/traditions/{tradition_id}/instruments"),
 	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
 
 	// Run stopwatch.
 	startTime := time.Now()
 	defer func() {
 		// Use floating point division here for higher precision (instead of Millisecond method).
 		elapsedDuration := time.Since(startTime)
-		c.duration.Record(ctx, float64(float64(elapsedDuration)/float64(time.Millisecond)), metric.WithAttributes(otelAttrs...))
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
 	}()
 
 	// Increment request counter.
 	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
 
 	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, "TraditionInstrumentsList",
+	ctx, span := c.cfg.Tracer.Start(ctx, TraditionInstrumentsListOperation,
 		trace.WithAttributes(otelAttrs...),
 		clientSpanKind,
 	)
@@ -3296,23 +3782,24 @@ func (c *Client) TraditionRead(ctx context.Context, params TraditionReadParams) 
 func (c *Client) sendTraditionRead(ctx context.Context, params TraditionReadParams) (res TraditionReadRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("TraditionRead"),
-		semconv.HTTPMethodKey.String("GET"),
-		semconv.HTTPRouteKey.String("/traditions/{tradition_id}"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.URLTemplateKey.String("/traditions/{tradition_id}"),
 	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
 
 	// Run stopwatch.
 	startTime := time.Now()
 	defer func() {
 		// Use floating point division here for higher precision (instead of Millisecond method).
 		elapsedDuration := time.Since(startTime)
-		c.duration.Record(ctx, float64(float64(elapsedDuration)/float64(time.Millisecond)), metric.WithAttributes(otelAttrs...))
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
 	}()
 
 	// Increment request counter.
 	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
 
 	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, "TraditionRead",
+	ctx, span := c.cfg.Tracer.Start(ctx, TraditionReadOperation,
 		trace.WithAttributes(otelAttrs...),
 		clientSpanKind,
 	)
@@ -3386,23 +3873,24 @@ func (c *Client) TraditionUpdate(ctx context.Context, request *TraditionUpdateRe
 func (c *Client) sendTraditionUpdate(ctx context.Context, request *TraditionUpdateRequest, params TraditionUpdateParams) (res TraditionUpdateRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("TraditionUpdate"),
-		semconv.HTTPMethodKey.String("PATCH"),
-		semconv.HTTPRouteKey.String("/traditions/{tradition_id}"),
+		semconv.HTTPRequestMethodKey.String("PATCH"),
+		semconv.URLTemplateKey.String("/traditions/{tradition_id}"),
 	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
 
 	// Run stopwatch.
 	startTime := time.Now()
 	defer func() {
 		// Use floating point division here for higher precision (instead of Millisecond method).
 		elapsedDuration := time.Since(startTime)
-		c.duration.Record(ctx, float64(float64(elapsedDuration)/float64(time.Millisecond)), metric.WithAttributes(otelAttrs...))
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
 	}()
 
 	// Increment request counter.
 	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
 
 	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, "TraditionUpdate",
+	ctx, span := c.cfg.Tracer.Start(ctx, TraditionUpdateOperation,
 		trace.WithAttributes(otelAttrs...),
 		clientSpanKind,
 	)
@@ -3455,7 +3943,7 @@ func (c *Client) sendTraditionUpdate(ctx context.Context, request *TraditionUpda
 		var satisfied bitset
 		{
 			stage = "Security:TalentOAuth"
-			switch err := c.securityTalentOAuth(ctx, "TraditionUpdate", r); {
+			switch err := c.securityTalentOAuth(ctx, TraditionUpdateOperation, r); {
 			case err == nil: // if NO error
 				satisfied[0] |= 1 << 0
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
@@ -3512,23 +4000,24 @@ func (c *Client) TraditionsList(ctx context.Context, params TraditionsListParams
 func (c *Client) sendTraditionsList(ctx context.Context, params TraditionsListParams) (res []Tradition, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("TraditionsList"),
-		semconv.HTTPMethodKey.String("GET"),
-		semconv.HTTPRouteKey.String("/traditions"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.URLTemplateKey.String("/traditions"),
 	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
 
 	// Run stopwatch.
 	startTime := time.Now()
 	defer func() {
 		// Use floating point division here for higher precision (instead of Millisecond method).
 		elapsedDuration := time.Since(startTime)
-		c.duration.Record(ctx, float64(float64(elapsedDuration)/float64(time.Millisecond)), metric.WithAttributes(otelAttrs...))
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
 	}()
 
 	// Increment request counter.
 	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
 
 	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, "TraditionsList",
+	ctx, span := c.cfg.Tracer.Start(ctx, TraditionsListOperation,
 		trace.WithAttributes(otelAttrs...),
 		clientSpanKind,
 	)
@@ -3623,23 +4112,24 @@ func (c *Client) UserAwardDisplayed(ctx context.Context, params UserAwardDisplay
 func (c *Client) sendUserAwardDisplayed(ctx context.Context, params UserAwardDisplayedParams) (res *UserAwardDisplayedOK, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("UserAwardDisplayed"),
-		semconv.HTTPMethodKey.String("POST"),
-		semconv.HTTPRouteKey.String("/user-awards/{award_id}/displayed"),
+		semconv.HTTPRequestMethodKey.String("POST"),
+		semconv.URLTemplateKey.String("/user-awards/{award_id}/displayed"),
 	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
 
 	// Run stopwatch.
 	startTime := time.Now()
 	defer func() {
 		// Use floating point division here for higher precision (instead of Millisecond method).
 		elapsedDuration := time.Since(startTime)
-		c.duration.Record(ctx, float64(float64(elapsedDuration)/float64(time.Millisecond)), metric.WithAttributes(otelAttrs...))
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
 	}()
 
 	// Increment request counter.
 	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
 
 	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, "UserAwardDisplayed",
+	ctx, span := c.cfg.Tracer.Start(ctx, UserAwardDisplayedOperation,
 		trace.WithAttributes(otelAttrs...),
 		clientSpanKind,
 	)
@@ -3690,7 +4180,7 @@ func (c *Client) sendUserAwardDisplayed(ctx context.Context, params UserAwardDis
 		var satisfied bitset
 		{
 			stage = "Security:BerlogaJWT"
-			switch err := c.securityBerlogaJWT(ctx, "UserAwardDisplayed", r); {
+			switch err := c.securityBerlogaJWT(ctx, UserAwardDisplayedOperation, r); {
 			case err == nil: // if NO error
 				satisfied[0] |= 1 << 0
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
@@ -3749,23 +4239,24 @@ func (c *Client) UserAwardsList(ctx context.Context, params UserAwardsListParams
 func (c *Client) sendUserAwardsList(ctx context.Context, params UserAwardsListParams) (res *UserAwardsListOKHeaders, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("UserAwardsList"),
-		semconv.HTTPMethodKey.String("GET"),
-		semconv.HTTPRouteKey.String("/user-awards"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.URLTemplateKey.String("/user-awards"),
 	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
 
 	// Run stopwatch.
 	startTime := time.Now()
 	defer func() {
 		// Use floating point division here for higher precision (instead of Millisecond method).
 		elapsedDuration := time.Since(startTime)
-		c.duration.Record(ctx, float64(float64(elapsedDuration)/float64(time.Millisecond)), metric.WithAttributes(otelAttrs...))
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
 	}()
 
 	// Increment request counter.
 	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
 
 	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, "UserAwardsList",
+	ctx, span := c.cfg.Tracer.Start(ctx, UserAwardsListOperation,
 		trace.WithAttributes(otelAttrs...),
 		clientSpanKind,
 	)
@@ -3835,7 +4326,7 @@ func (c *Client) sendUserAwardsList(ctx context.Context, params UserAwardsListPa
 		var satisfied bitset
 		{
 			stage = "Security:TalentOAuth"
-			switch err := c.securityTalentOAuth(ctx, "UserAwardsList", r); {
+			switch err := c.securityTalentOAuth(ctx, UserAwardsListOperation, r); {
 			case err == nil: // if NO error
 				satisfied[0] |= 1 << 0
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
@@ -3846,7 +4337,7 @@ func (c *Client) sendUserAwardsList(ctx context.Context, params UserAwardsListPa
 		}
 		{
 			stage = "Security:BerlogaJWT"
-			switch err := c.securityBerlogaJWT(ctx, "UserAwardsList", r); {
+			switch err := c.securityBerlogaJWT(ctx, UserAwardsListOperation, r); {
 			case err == nil: // if NO error
 				satisfied[0] |= 1 << 1
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
@@ -3904,23 +4395,24 @@ func (c *Client) UserProgressList(ctx context.Context, params UserProgressListPa
 func (c *Client) sendUserProgressList(ctx context.Context, params UserProgressListParams) (res *UserProgressListOKHeaders, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("UserProgressList"),
-		semconv.HTTPMethodKey.String("GET"),
-		semconv.HTTPRouteKey.String("/user-progress"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.URLTemplateKey.String("/user-progress"),
 	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
 
 	// Run stopwatch.
 	startTime := time.Now()
 	defer func() {
 		// Use floating point division here for higher precision (instead of Millisecond method).
 		elapsedDuration := time.Since(startTime)
-		c.duration.Record(ctx, float64(float64(elapsedDuration)/float64(time.Millisecond)), metric.WithAttributes(otelAttrs...))
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
 	}()
 
 	// Increment request counter.
 	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
 
 	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, "UserProgressList",
+	ctx, span := c.cfg.Tracer.Start(ctx, UserProgressListOperation,
 		trace.WithAttributes(otelAttrs...),
 		clientSpanKind,
 	)
@@ -4020,16 +4512,19 @@ func (c *Client) sendUserProgressList(ctx context.Context, params UserProgressLi
 		}
 
 		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
-			return e.EncodeArray(func(e uri.Encoder) error {
-				for i, item := range params.TraditionIds {
-					if err := func() error {
-						return e.EncodeValue(conv.Int32ToString(item))
-					}(); err != nil {
-						return errors.Wrapf(err, "[%d]", i)
+			if params.TraditionIds != nil {
+				return e.EncodeArray(func(e uri.Encoder) error {
+					for i, item := range params.TraditionIds {
+						if err := func() error {
+							return e.EncodeValue(conv.Int32ToString(item))
+						}(); err != nil {
+							return errors.Wrapf(err, "[%d]", i)
+						}
 					}
-				}
-				return nil
-			})
+					return nil
+				})
+			}
+			return nil
 		}); err != nil {
 			return res, errors.Wrap(err, "encode query")
 		}
@@ -4043,16 +4538,19 @@ func (c *Client) sendUserProgressList(ctx context.Context, params UserProgressLi
 		}
 
 		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
-			return e.EncodeArray(func(e uri.Encoder) error {
-				for i, item := range params.InstrumentIds {
-					if err := func() error {
-						return e.EncodeValue(conv.Int32ToString(item))
-					}(); err != nil {
-						return errors.Wrapf(err, "[%d]", i)
+			if params.InstrumentIds != nil {
+				return e.EncodeArray(func(e uri.Encoder) error {
+					for i, item := range params.InstrumentIds {
+						if err := func() error {
+							return e.EncodeValue(conv.Int32ToString(item))
+						}(); err != nil {
+							return errors.Wrapf(err, "[%d]", i)
+						}
 					}
-				}
-				return nil
-			})
+					return nil
+				})
+			}
+			return nil
 		}); err != nil {
 			return res, errors.Wrap(err, "encode query")
 		}
@@ -4087,7 +4585,7 @@ func (c *Client) sendUserProgressList(ctx context.Context, params UserProgressLi
 		var satisfied bitset
 		{
 			stage = "Security:TalentOAuth"
-			switch err := c.securityTalentOAuth(ctx, "UserProgressList", r); {
+			switch err := c.securityTalentOAuth(ctx, UserProgressListOperation, r); {
 			case err == nil: // if NO error
 				satisfied[0] |= 1 << 0
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
@@ -4098,7 +4596,7 @@ func (c *Client) sendUserProgressList(ctx context.Context, params UserProgressLi
 		}
 		{
 			stage = "Security:BerlogaJWT"
-			switch err := c.securityBerlogaJWT(ctx, "UserProgressList", r); {
+			switch err := c.securityBerlogaJWT(ctx, UserProgressListOperation, r); {
 			case err == nil: // if NO error
 				satisfied[0] |= 1 << 1
 			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):

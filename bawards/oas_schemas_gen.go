@@ -137,7 +137,7 @@ type ActivityFuncFilter struct {
 	// Значение, с которым выполняется сравнение.
 	// > На данный момент поддерживается только числовое
 	// значение.
-	Value ActivityFuncFilterValue `json:"value"`
+	Value float64 `json:"value"`
 }
 
 // GetKind returns the value of Kind.
@@ -156,7 +156,7 @@ func (s *ActivityFuncFilter) GetOp() ActivityFuncFilterOp {
 }
 
 // GetValue returns the value of Value.
-func (s *ActivityFuncFilter) GetValue() ActivityFuncFilterValue {
+func (s *ActivityFuncFilter) GetValue() float64 {
 	return s.Value
 }
 
@@ -176,7 +176,7 @@ func (s *ActivityFuncFilter) SetOp(val ActivityFuncFilterOp) {
 }
 
 // SetValue sets the value of Value.
-func (s *ActivityFuncFilter) SetValue(val ActivityFuncFilterValue) {
+func (s *ActivityFuncFilter) SetValue(val float64) {
 	s.Value = val
 }
 
@@ -248,47 +248,6 @@ func (s *ActivityFuncFilterOp) UnmarshalText(data []byte) error {
 	default:
 		return errors.Errorf("invalid value: %q", data)
 	}
-}
-
-// Значение, с которым выполняется сравнение.
-// > На данный момент поддерживается только числовое
-// значение.
-// ActivityFuncFilterValue represents sum type.
-type ActivityFuncFilterValue struct {
-	Type    ActivityFuncFilterValueType // switch on this field
-	Float64 float64
-}
-
-// ActivityFuncFilterValueType is oneOf type of ActivityFuncFilterValue.
-type ActivityFuncFilterValueType string
-
-// Possible values for ActivityFuncFilterValueType.
-const (
-	Float64ActivityFuncFilterValue ActivityFuncFilterValueType = "float64"
-)
-
-// IsFloat64 reports whether ActivityFuncFilterValue is float64.
-func (s ActivityFuncFilterValue) IsFloat64() bool { return s.Type == Float64ActivityFuncFilterValue }
-
-// SetFloat64 sets ActivityFuncFilterValue to float64.
-func (s *ActivityFuncFilterValue) SetFloat64(v float64) {
-	s.Type = Float64ActivityFuncFilterValue
-	s.Float64 = v
-}
-
-// GetFloat64 returns float64 and true boolean if ActivityFuncFilterValue is float64.
-func (s ActivityFuncFilterValue) GetFloat64() (v float64, ok bool) {
-	if !s.IsFloat64() {
-		return v, false
-	}
-	return s.Float64, true
-}
-
-// NewFloat64ActivityFuncFilterValue returns new ActivityFuncFilterValue from float64.
-func NewFloat64ActivityFuncFilterValue(v float64) ActivityFuncFilterValue {
-	var s ActivityFuncFilterValue
-	s.SetFloat64(v)
-	return s
 }
 
 type ActivityFuncKind string
@@ -454,36 +413,6 @@ func (s *ActivityFuncSortOrdering) UnmarshalText(data []byte) error {
 }
 
 type ActivityFuncs []ActivityFunc
-
-type AdminAccessRequired struct {
-	// Текстовое описание ошибки.
-	ErrorMessage string `json:"error_message"`
-}
-
-// GetErrorMessage returns the value of ErrorMessage.
-func (s *AdminAccessRequired) GetErrorMessage() string {
-	return s.ErrorMessage
-}
-
-// SetErrorMessage sets the value of ErrorMessage.
-func (s *AdminAccessRequired) SetErrorMessage(val string) {
-	s.ErrorMessage = val
-}
-
-func (*AdminAccessRequired) complexChallengeCreateRes()     {}
-func (*AdminAccessRequired) complexChallengeGoalCreateRes() {}
-func (*AdminAccessRequired) complexChallengeGoalDeleteRes() {}
-func (*AdminAccessRequired) complexChallengeGoalReadRes()   {}
-func (*AdminAccessRequired) complexChallengeGoalUpdateRes() {}
-func (*AdminAccessRequired) complexChallengeGoalsListRes()  {}
-func (*AdminAccessRequired) complexChallengePublicRes()     {}
-func (*AdminAccessRequired) complexChallengeReadRes()       {}
-func (*AdminAccessRequired) complexChallengeUpdateRes()     {}
-func (*AdminAccessRequired) complexChallengeValidateRes()   {}
-func (*AdminAccessRequired) instrumentCreateRes()           {}
-func (*AdminAccessRequired) instrumentUpdateRes()           {}
-func (*AdminAccessRequired) traditionCreateRes()            {}
-func (*AdminAccessRequired) traditionUpdateRes()            {}
 
 type AfterWithOrderBy struct {
 	ErrorMessage string `json:"error_message"`
@@ -759,6 +688,7 @@ func (s *AwardsListOrderBy) UnmarshalText(data []byte) error {
 
 type BerlogaJWT struct {
 	APIKey string
+	Roles  []string
 }
 
 // GetAPIKey returns the value of APIKey.
@@ -766,10 +696,59 @@ func (s *BerlogaJWT) GetAPIKey() string {
 	return s.APIKey
 }
 
+// GetRoles returns the value of Roles.
+func (s *BerlogaJWT) GetRoles() []string {
+	return s.Roles
+}
+
 // SetAPIKey sets the value of APIKey.
 func (s *BerlogaJWT) SetAPIKey(val string) {
 	s.APIKey = val
 }
+
+// SetRoles sets the value of Roles.
+func (s *BerlogaJWT) SetRoles(val []string) {
+	s.Roles = val
+}
+
+// Ref: #/components/schemas/Challenge
+type Challenge struct {
+	ID          int32  `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+
+// GetID returns the value of ID.
+func (s *Challenge) GetID() int32 {
+	return s.ID
+}
+
+// GetName returns the value of Name.
+func (s *Challenge) GetName() string {
+	return s.Name
+}
+
+// GetDescription returns the value of Description.
+func (s *Challenge) GetDescription() string {
+	return s.Description
+}
+
+// SetID sets the value of ID.
+func (s *Challenge) SetID(val int32) {
+	s.ID = val
+}
+
+// SetName sets the value of Name.
+func (s *Challenge) SetName(val string) {
+	s.Name = val
+}
+
+// SetDescription sets the value of Description.
+func (s *Challenge) SetDescription(val string) {
+	s.Description = val
+}
+
+func (*Challenge) challengeV2ReadRes() {}
 
 // ChallengesListOKHeaders wraps []ChallengesListOKItem with response headers.
 type ChallengesListOKHeaders struct {
@@ -845,6 +824,32 @@ func (s *ChallengesListOKItem) SetIconURL(val string) {
 // SetApplications sets the value of Applications.
 func (s *ChallengesListOKItem) SetApplications(val []ApplicationID) {
 	s.Applications = val
+}
+
+// ChallengesV2ListHeaders wraps []Challenge with response headers.
+type ChallengesV2ListHeaders struct {
+	XCount   int64
+	Response []Challenge
+}
+
+// GetXCount returns the value of XCount.
+func (s *ChallengesV2ListHeaders) GetXCount() int64 {
+	return s.XCount
+}
+
+// GetResponse returns the value of Response.
+func (s *ChallengesV2ListHeaders) GetResponse() []Challenge {
+	return s.Response
+}
+
+// SetXCount sets the value of XCount.
+func (s *ChallengesV2ListHeaders) SetXCount(val int64) {
+	s.XCount = val
+}
+
+// SetResponse sets the value of Response.
+func (s *ChallengesV2ListHeaders) SetResponse(val []Challenge) {
+	s.Response = val
 }
 
 // Merged schema.
@@ -2716,54 +2721,6 @@ type InstrumentUpdateUnprocessableEntity Error
 
 func (*InstrumentUpdateUnprocessableEntity) instrumentUpdateRes() {}
 
-type InstrumentsListIsActive string
-
-const (
-	InstrumentsListIsActiveTrue  InstrumentsListIsActive = "true"
-	InstrumentsListIsActiveFalse InstrumentsListIsActive = "false"
-	InstrumentsListIsActiveAll   InstrumentsListIsActive = "all"
-)
-
-// AllValues returns all InstrumentsListIsActive values.
-func (InstrumentsListIsActive) AllValues() []InstrumentsListIsActive {
-	return []InstrumentsListIsActive{
-		InstrumentsListIsActiveTrue,
-		InstrumentsListIsActiveFalse,
-		InstrumentsListIsActiveAll,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s InstrumentsListIsActive) MarshalText() ([]byte, error) {
-	switch s {
-	case InstrumentsListIsActiveTrue:
-		return []byte(s), nil
-	case InstrumentsListIsActiveFalse:
-		return []byte(s), nil
-	case InstrumentsListIsActiveAll:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *InstrumentsListIsActive) UnmarshalText(data []byte) error {
-	switch InstrumentsListIsActive(data) {
-	case InstrumentsListIsActiveTrue:
-		*s = InstrumentsListIsActiveTrue
-		return nil
-	case InstrumentsListIsActiveFalse:
-		*s = InstrumentsListIsActiveFalse
-		return nil
-	case InstrumentsListIsActiveAll:
-		*s = InstrumentsListIsActiveAll
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
 // InstrumentsListOKHeaders wraps []Instrument with response headers.
 type InstrumentsListOKHeaders struct {
 	XCount   int64
@@ -2831,6 +2788,54 @@ func (s *InstrumentsListOrderBy) UnmarshalText(data []byte) error {
 	}
 }
 
+type IsActive string
+
+const (
+	IsActiveTrue  IsActive = "true"
+	IsActiveFalse IsActive = "false"
+	IsActiveAll   IsActive = "all"
+)
+
+// AllValues returns all IsActive values.
+func (IsActive) AllValues() []IsActive {
+	return []IsActive{
+		IsActiveTrue,
+		IsActiveFalse,
+		IsActiveAll,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s IsActive) MarshalText() ([]byte, error) {
+	switch s {
+	case IsActiveTrue:
+		return []byte(s), nil
+	case IsActiveFalse:
+		return []byte(s), nil
+	case IsActiveAll:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *IsActive) UnmarshalText(data []byte) error {
+	switch IsActive(data) {
+	case IsActiveTrue:
+		*s = IsActiveTrue
+		return nil
+	case IsActiveFalse:
+		*s = IsActiveFalse
+		return nil
+	case IsActiveAll:
+		*s = IsActiveAll
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 // NewNilDateTime returns new NilDateTime with value set to v.
 func NewNilDateTime(v time.Time) NilDateTime {
 	return NilDateTime{
@@ -2850,10 +2855,10 @@ func (o *NilDateTime) SetTo(v time.Time) {
 	o.Value = v
 }
 
-// IsSet returns true if value is Null.
+// IsNull returns true if value is Null.
 func (o NilDateTime) IsNull() bool { return o.Null }
 
-// SetNull sets value to null.
+// SetToNull sets value to null.
 func (o *NilDateTime) SetToNull() {
 	o.Null = true
 	var v time.Time
@@ -2895,10 +2900,10 @@ func (o *NilFloat64) SetTo(v float64) {
 	o.Value = v
 }
 
-// IsSet returns true if value is Null.
+// IsNull returns true if value is Null.
 func (o NilFloat64) IsNull() bool { return o.Null }
 
-// SetNull sets value to null.
+// SetToNull sets value to null.
 func (o *NilFloat64) SetToNull() {
 	o.Null = true
 	var v float64
@@ -2940,10 +2945,10 @@ func (o *NilInstrumentID) SetTo(v InstrumentID) {
 	o.Value = v
 }
 
-// IsSet returns true if value is Null.
+// IsNull returns true if value is Null.
 func (o NilInstrumentID) IsNull() bool { return o.Null }
 
-// SetNull sets value to null.
+// SetToNull sets value to null.
 func (o *NilInstrumentID) SetToNull() {
 	o.Null = true
 	var v InstrumentID
@@ -2985,10 +2990,10 @@ func (o *NilTraditionID) SetTo(v TraditionID) {
 	o.Value = v
 }
 
-// IsSet returns true if value is Null.
+// IsNull returns true if value is Null.
 func (o NilTraditionID) IsNull() bool { return o.Null }
 
-// SetNull sets value to null.
+// SetToNull sets value to null.
 func (o *NilTraditionID) SetToNull() {
 	o.Null = true
 	var v TraditionID
@@ -3010,6 +3015,22 @@ func (o NilTraditionID) Or(d TraditionID) TraditionID {
 	}
 	return d
 }
+
+type NotFound struct {
+	ErrorMessage string `json:"error_message"`
+}
+
+// GetErrorMessage returns the value of ErrorMessage.
+func (s *NotFound) GetErrorMessage() string {
+	return s.ErrorMessage
+}
+
+// SetErrorMessage sets the value of ErrorMessage.
+func (s *NotFound) SetErrorMessage(val string) {
+	s.ErrorMessage = val
+}
+
+func (*NotFound) challengeV2ReadRes() {}
 
 // NewOptAwardsListOrderBy returns new OptAwardsListOrderBy with value set to v.
 func NewOptAwardsListOrderBy(v AwardsListOrderBy) OptAwardsListOrderBy {
@@ -3241,52 +3262,6 @@ func (o OptFloat64) Or(d float64) float64 {
 	return d
 }
 
-// NewOptInstrumentsListIsActive returns new OptInstrumentsListIsActive with value set to v.
-func NewOptInstrumentsListIsActive(v InstrumentsListIsActive) OptInstrumentsListIsActive {
-	return OptInstrumentsListIsActive{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptInstrumentsListIsActive is optional InstrumentsListIsActive.
-type OptInstrumentsListIsActive struct {
-	Value InstrumentsListIsActive
-	Set   bool
-}
-
-// IsSet returns true if OptInstrumentsListIsActive was set.
-func (o OptInstrumentsListIsActive) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptInstrumentsListIsActive) Reset() {
-	var v InstrumentsListIsActive
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptInstrumentsListIsActive) SetTo(v InstrumentsListIsActive) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptInstrumentsListIsActive) Get() (v InstrumentsListIsActive, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptInstrumentsListIsActive) Or(d InstrumentsListIsActive) InstrumentsListIsActive {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
 // NewOptInstrumentsListOrderBy returns new OptInstrumentsListOrderBy with value set to v.
 func NewOptInstrumentsListOrderBy(v InstrumentsListOrderBy) OptInstrumentsListOrderBy {
 	return OptInstrumentsListOrderBy{
@@ -3425,6 +3400,52 @@ func (o OptInt64) Or(d int64) int64 {
 	return d
 }
 
+// NewOptIsActive returns new OptIsActive with value set to v.
+func NewOptIsActive(v IsActive) OptIsActive {
+	return OptIsActive{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptIsActive is optional IsActive.
+type OptIsActive struct {
+	Value IsActive
+	Set   bool
+}
+
+// IsSet returns true if OptIsActive was set.
+func (o OptIsActive) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptIsActive) Reset() {
+	var v IsActive
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptIsActive) SetTo(v IsActive) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptIsActive) Get() (v IsActive, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptIsActive) Or(d IsActive) IsActive {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptNilDateTime returns new OptNilDateTime with value set to v.
 func NewOptNilDateTime(v time.Time) OptNilDateTime {
 	return OptNilDateTime{
@@ -3458,10 +3479,10 @@ func (o *OptNilDateTime) SetTo(v time.Time) {
 	o.Value = v
 }
 
-// IsSet returns true if value is Null.
+// IsNull returns true if value is Null.
 func (o OptNilDateTime) IsNull() bool { return o.Null }
 
-// SetNull sets value to null.
+// SetToNull sets value to null.
 func (o *OptNilDateTime) SetToNull() {
 	o.Set = true
 	o.Null = true
@@ -3521,10 +3542,10 @@ func (o *OptNilInt32) SetTo(v int32) {
 	o.Value = v
 }
 
-// IsSet returns true if value is Null.
+// IsNull returns true if value is Null.
 func (o OptNilInt32) IsNull() bool { return o.Null }
 
-// SetNull sets value to null.
+// SetToNull sets value to null.
 func (o *OptNilInt32) SetToNull() {
 	o.Set = true
 	o.Null = true
@@ -3584,10 +3605,10 @@ func (o *OptNilUUID) SetTo(v uuid.UUID) {
 	o.Value = v
 }
 
-// IsSet returns true if value is Null.
+// IsNull returns true if value is Null.
 func (o OptNilUUID) IsNull() bool { return o.Null }
 
-// SetNull sets value to null.
+// SetToNull sets value to null.
 func (o *OptNilUUID) SetToNull() {
 	o.Set = true
 	o.Null = true
@@ -3608,6 +3629,52 @@ func (o OptNilUUID) Get() (v uuid.UUID, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptNilUUID) Or(d uuid.UUID) uuid.UUID {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptPassedChallengesV2ListOrderBy returns new OptPassedChallengesV2ListOrderBy with value set to v.
+func NewOptPassedChallengesV2ListOrderBy(v PassedChallengesV2ListOrderBy) OptPassedChallengesV2ListOrderBy {
+	return OptPassedChallengesV2ListOrderBy{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptPassedChallengesV2ListOrderBy is optional PassedChallengesV2ListOrderBy.
+type OptPassedChallengesV2ListOrderBy struct {
+	Value PassedChallengesV2ListOrderBy
+	Set   bool
+}
+
+// IsSet returns true if OptPassedChallengesV2ListOrderBy was set.
+func (o OptPassedChallengesV2ListOrderBy) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptPassedChallengesV2ListOrderBy) Reset() {
+	var v PassedChallengesV2ListOrderBy
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptPassedChallengesV2ListOrderBy) SetTo(v PassedChallengesV2ListOrderBy) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptPassedChallengesV2ListOrderBy) Get() (v PassedChallengesV2ListOrderBy, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptPassedChallengesV2ListOrderBy) Or(d PassedChallengesV2ListOrderBy) PassedChallengesV2ListOrderBy {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -3654,52 +3721,6 @@ func (o OptString) Get() (v string, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptString) Or(d string) string {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptTraditionsListIsActive returns new OptTraditionsListIsActive with value set to v.
-func NewOptTraditionsListIsActive(v TraditionsListIsActive) OptTraditionsListIsActive {
-	return OptTraditionsListIsActive{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptTraditionsListIsActive is optional TraditionsListIsActive.
-type OptTraditionsListIsActive struct {
-	Value TraditionsListIsActive
-	Set   bool
-}
-
-// IsSet returns true if OptTraditionsListIsActive was set.
-func (o OptTraditionsListIsActive) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptTraditionsListIsActive) Reset() {
-	var v TraditionsListIsActive
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptTraditionsListIsActive) SetTo(v TraditionsListIsActive) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptTraditionsListIsActive) Get() (v TraditionsListIsActive, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptTraditionsListIsActive) Or(d TraditionsListIsActive) TraditionsListIsActive {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -3898,6 +3919,140 @@ func (s *PassedChallengesListOKItem) SetPassedAt(val time.Time) {
 	s.PassedAt = val
 }
 
+// PassedChallengesV2ListHeaders wraps []PassedChallengesV2ListItem with response headers.
+type PassedChallengesV2ListHeaders struct {
+	XCount   int64
+	Response []PassedChallengesV2ListItem
+}
+
+// GetXCount returns the value of XCount.
+func (s *PassedChallengesV2ListHeaders) GetXCount() int64 {
+	return s.XCount
+}
+
+// GetResponse returns the value of Response.
+func (s *PassedChallengesV2ListHeaders) GetResponse() []PassedChallengesV2ListItem {
+	return s.Response
+}
+
+// SetXCount sets the value of XCount.
+func (s *PassedChallengesV2ListHeaders) SetXCount(val int64) {
+	s.XCount = val
+}
+
+// SetResponse sets the value of Response.
+func (s *PassedChallengesV2ListHeaders) SetResponse(val []PassedChallengesV2ListItem) {
+	s.Response = val
+}
+
+type PassedChallengesV2ListItem struct {
+	ChallengeID int32 `json:"challenge_id"`
+	UserID      int32 `json:"user_id"`
+	// Дата прохождения испытания.
+	PassedAt time.Time `json:"passed_at"`
+}
+
+// GetChallengeID returns the value of ChallengeID.
+func (s *PassedChallengesV2ListItem) GetChallengeID() int32 {
+	return s.ChallengeID
+}
+
+// GetUserID returns the value of UserID.
+func (s *PassedChallengesV2ListItem) GetUserID() int32 {
+	return s.UserID
+}
+
+// GetPassedAt returns the value of PassedAt.
+func (s *PassedChallengesV2ListItem) GetPassedAt() time.Time {
+	return s.PassedAt
+}
+
+// SetChallengeID sets the value of ChallengeID.
+func (s *PassedChallengesV2ListItem) SetChallengeID(val int32) {
+	s.ChallengeID = val
+}
+
+// SetUserID sets the value of UserID.
+func (s *PassedChallengesV2ListItem) SetUserID(val int32) {
+	s.UserID = val
+}
+
+// SetPassedAt sets the value of PassedAt.
+func (s *PassedChallengesV2ListItem) SetPassedAt(val time.Time) {
+	s.PassedAt = val
+}
+
+type PassedChallengesV2ListOrderBy string
+
+const (
+	PassedChallengesV2ListOrderByAsc  PassedChallengesV2ListOrderBy = "asc"
+	PassedChallengesV2ListOrderByDesc PassedChallengesV2ListOrderBy = "desc"
+)
+
+// AllValues returns all PassedChallengesV2ListOrderBy values.
+func (PassedChallengesV2ListOrderBy) AllValues() []PassedChallengesV2ListOrderBy {
+	return []PassedChallengesV2ListOrderBy{
+		PassedChallengesV2ListOrderByAsc,
+		PassedChallengesV2ListOrderByDesc,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s PassedChallengesV2ListOrderBy) MarshalText() ([]byte, error) {
+	switch s {
+	case PassedChallengesV2ListOrderByAsc:
+		return []byte(s), nil
+	case PassedChallengesV2ListOrderByDesc:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *PassedChallengesV2ListOrderBy) UnmarshalText(data []byte) error {
+	switch PassedChallengesV2ListOrderBy(data) {
+	case PassedChallengesV2ListOrderByAsc:
+		*s = PassedChallengesV2ListOrderByAsc
+		return nil
+	case PassedChallengesV2ListOrderByDesc:
+		*s = PassedChallengesV2ListOrderByDesc
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type PermissionDenied struct {
+	// Текстовое описание ошибки.
+	ErrorMessage string `json:"error_message"`
+}
+
+// GetErrorMessage returns the value of ErrorMessage.
+func (s *PermissionDenied) GetErrorMessage() string {
+	return s.ErrorMessage
+}
+
+// SetErrorMessage sets the value of ErrorMessage.
+func (s *PermissionDenied) SetErrorMessage(val string) {
+	s.ErrorMessage = val
+}
+
+func (*PermissionDenied) complexChallengeCreateRes()     {}
+func (*PermissionDenied) complexChallengeGoalCreateRes() {}
+func (*PermissionDenied) complexChallengeGoalDeleteRes() {}
+func (*PermissionDenied) complexChallengeGoalReadRes()   {}
+func (*PermissionDenied) complexChallengeGoalUpdateRes() {}
+func (*PermissionDenied) complexChallengeGoalsListRes()  {}
+func (*PermissionDenied) complexChallengePublicRes()     {}
+func (*PermissionDenied) complexChallengeReadRes()       {}
+func (*PermissionDenied) complexChallengeUpdateRes()     {}
+func (*PermissionDenied) complexChallengeValidateRes()   {}
+func (*PermissionDenied) instrumentCreateRes()           {}
+func (*PermissionDenied) instrumentUpdateRes()           {}
+func (*PermissionDenied) traditionCreateRes()            {}
+func (*PermissionDenied) traditionUpdateRes()            {}
+
 // Merged schema.
 // Ref: #/components/schemas/PlayerAward
 type PlayerAward struct {
@@ -3994,6 +4149,7 @@ func (s *Progress) SetAwardLevel(val int32) {
 
 type TalentOAuth struct {
 	Token string
+	Roles []string
 }
 
 // GetToken returns the value of Token.
@@ -4001,9 +4157,19 @@ func (s *TalentOAuth) GetToken() string {
 	return s.Token
 }
 
+// GetRoles returns the value of Roles.
+func (s *TalentOAuth) GetRoles() []string {
+	return s.Roles
+}
+
 // SetToken sets the value of Token.
 func (s *TalentOAuth) SetToken(val string) {
 	s.Token = val
+}
+
+// SetRoles sets the value of Roles.
+func (s *TalentOAuth) SetRoles(val []string) {
+	s.Roles = val
 }
 
 // Merged schema.
@@ -4245,54 +4411,6 @@ func (s *TraditionUpdateRequest) SetDescription(val OptString) {
 // SetIsActive sets the value of IsActive.
 func (s *TraditionUpdateRequest) SetIsActive(val OptBool) {
 	s.IsActive = val
-}
-
-type TraditionsListIsActive string
-
-const (
-	TraditionsListIsActiveTrue  TraditionsListIsActive = "true"
-	TraditionsListIsActiveFalse TraditionsListIsActive = "false"
-	TraditionsListIsActiveAll   TraditionsListIsActive = "all"
-)
-
-// AllValues returns all TraditionsListIsActive values.
-func (TraditionsListIsActive) AllValues() []TraditionsListIsActive {
-	return []TraditionsListIsActive{
-		TraditionsListIsActiveTrue,
-		TraditionsListIsActiveFalse,
-		TraditionsListIsActiveAll,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s TraditionsListIsActive) MarshalText() ([]byte, error) {
-	switch s {
-	case TraditionsListIsActiveTrue:
-		return []byte(s), nil
-	case TraditionsListIsActiveFalse:
-		return []byte(s), nil
-	case TraditionsListIsActiveAll:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *TraditionsListIsActive) UnmarshalText(data []byte) error {
-	switch TraditionsListIsActive(data) {
-	case TraditionsListIsActiveTrue:
-		*s = TraditionsListIsActiveTrue
-		return nil
-	case TraditionsListIsActiveFalse:
-		*s = TraditionsListIsActiveFalse
-		return nil
-	case TraditionsListIsActiveAll:
-		*s = TraditionsListIsActiveAll
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
 }
 
 type UnprocessableRequest struct {

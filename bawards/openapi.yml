@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Награды Берлоги
-  version: '0.4-dev'
+  version: '0.5'
   description: |-
     Сервис наград за прогресс по традициям и инструментам Берлоги.
 
@@ -57,6 +57,10 @@ tags:
 
   - name: challenges
     x-displayName: Испытания
+    description: Испытания для [игровых активностей](/berloga-activities/docs/).
+
+  - name: deprecated-challenges
+    x-displayName: Испытания (устаревшие)
     description: Испытания для [игровых активностей](/berloga-activities/docs/).
 
   - name: complexch
@@ -191,11 +195,82 @@ paths:
             type: boolean
             default: false
 
+  /challenges/v2:
+    get:
+      operationId: ChallengesV2List
+      summary: Список испытаний
+      tags: [challenges]
+      responses:
+        '200': {$ref: '#/components/responses/ChallengesV2List'}
+      parameters:
+        - $ref: '#/components/parameters/after_32'
+        - $ref: '#/components/parameters/limit'
+
+  /challenges/v2/{challenge_id}:
+    parameters:
+      - $ref: '#/components/parameters/challenge_id'
+    get:
+      operationId: ChallengeV2Read
+      summary: Чтение испытания
+      tags: [challenges]
+      responses:
+        '200':
+          description: Ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Challenge'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /challenges/v2/passed:
+    get:
+      operationId: PassedChallengesV2List
+      summary: Список пройденных испытаний
+      description: |-
+        > Порядок сортировки результатов влияет на параметр `after`.
+        >
+        > При запросе в порядке *возрастания* (`asc`),
+        > пропускаются идентификаторы *равные или менее* указанного.
+        >
+        > При запросе в порядке *убывания* (`desc`),
+        > пропускаются идентификаторы *равные или более* указанного.
+      tags: [challenges]
+      responses:
+        '200': {$ref: '#/components/responses/PassedChallengesV2List'}
+      parameters:
+        - $ref: '#/components/parameters/after_64'
+        - $ref: '#/components/parameters/limit'
+        - name: challenge_id
+          in: query
+          required: false
+          description: Фильтрация по ID испытания.
+          schema:
+            type: integer
+            format: int32
+        - name: user_id
+          in: query
+          required: false
+          description: Фильтрация по ID пользователя Таланта.
+          schema:
+            type: integer
+            format: int32
+        - name: order_by
+          in: query
+          description: Порядок сортировки результатов.
+          schema:
+            type: string
+            default: asc
+            enum:
+              - asc
+              - desc
+
   /challenges:
     get:
       operationId: ChallengesList
+      deprecated: true
       summary: Список испытаний
-      tags: [challenges]
+      tags: [deprecated-challenges]
       responses:
         '200':
           description: OK
@@ -234,8 +309,9 @@ paths:
   /challenges/passed:
     get:
       operationId: PassedChallengesList
+      deprecated: true
       summary: Список пройденных испытаний
-      tags: [challenges]
+      tags: [deprecated-challenges]
       description: |-
         > При аутентификации токеном `TalentOAuth`, предустанавливается параметр `talent_id`.
 
@@ -291,6 +367,7 @@ paths:
   /complexch:
     get:
       operationId: ComplexChallengesList
+      deprecated: true
       summary: Список агрегатных испытаний
       tags: [complexch]
       parameters:
@@ -316,6 +393,7 @@ paths:
                   $ref: '#/components/schemas/ComplexChallengeBase'
     post:
       operationId: ComplexChallengeCreate
+      deprecated: true
       summary: Создание агрегатного испытания
       security: [TalentOAuth: []]
       tags: [complexch]
@@ -330,13 +408,14 @@ paths:
               schema:
                 $ref: '#/components/schemas/ComplexChallengeBase'
         '403':
-          $ref: '#/components/responses/AdminAccessRequired'
+          $ref: '#/components/responses/PermissionDenied'
 
   /complexch/{complexch_id}:
     parameters:
       - $ref: '#/components/parameters/complexch_id'
     get:
       operationId: ComplexChallengeRead
+      deprecated: true
       summary: Чтение агрегатного испытания
       security: [TalentOAuth: []]
       tags: [complexch]
@@ -361,11 +440,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/ComplexChallengeRead'
         '403':
-          $ref: '#/components/responses/AdminAccessRequired'
+          $ref: '#/components/responses/PermissionDenied'
         '404':
           $ref: '#/components/responses/ComplexchNotFound'
     patch:
       operationId: ComplexChallengeUpdate
+      deprecated: true
       summary: Обновление свойств испытания
       security: [TalentOAuth: []]
       tags: [complexch]
@@ -380,7 +460,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ComplexChallenge'
         '403':
-          $ref: '#/components/responses/AdminAccessRequired'
+          $ref: '#/components/responses/PermissionDenied'
         '404':
           $ref: '#/components/responses/ComplexchNotFound'
         '409':
@@ -399,6 +479,7 @@ paths:
           type: boolean
     put:
       operationId: ComplexChallengePublic
+      deprecated: true
       summary: Смена состояния публичности
       security: [TalentOAuth: []]
       tags: [complexch]
@@ -417,7 +498,7 @@ paths:
         '204':
           description: Состояние уже соответствует запрашиваемому
         '403':
-          $ref: '#/components/responses/AdminAccessRequired'
+          $ref: '#/components/responses/PermissionDenied'
         '404':
           $ref: '#/components/responses/ComplexchNotFound'
         '422':
@@ -428,6 +509,7 @@ paths:
       - $ref: '#/components/parameters/complexch_id'
     post:
       operationId: ComplexChallengeValidate
+      deprecated: true
       summary: Валидация испытания
       security: [TalentOAuth: []]
       tags: [complexch]
@@ -446,7 +528,7 @@ paths:
         '204':
           description: Ошибки валидации отсутствуют
         '403':
-          $ref: '#/components/responses/AdminAccessRequired'
+          $ref: '#/components/responses/PermissionDenied'
         '404':
           $ref: '#/components/responses/ComplexchNotFound'
         '422':
@@ -457,6 +539,7 @@ paths:
       - $ref: '#/components/parameters/complexch_id'
     get:
       operationId: ComplexChallengeGoalsList
+      deprecated: true
       summary: Список целей испытания
       security: [TalentOAuth: []]
       tags: [complexch]
@@ -474,9 +557,10 @@ paths:
                 items:
                   $ref: '#/components/schemas/ComplexChallengeGoal'
         '403':
-          $ref: '#/components/responses/AdminAccessRequired'
+          $ref: '#/components/responses/PermissionDenied'
     post:
       operationId: ComplexChallengeGoalCreate
+      deprecated: true
       summary: Создание цели испытания
       security: [TalentOAuth: []]
       tags: [complexch]
@@ -491,7 +575,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ComplexChallengeGoal'
         '403':
-          $ref: '#/components/responses/AdminAccessRequired'
+          $ref: '#/components/responses/PermissionDenied'
         '404':
           $ref: '#/components/responses/ComplexchNotFound'
         '409':
@@ -509,6 +593,7 @@ paths:
           format: int32
     get:
       operationId: ComplexChallengeGoalRead
+      deprecated: true
       summary: Чтение цели испытания
       security: [TalentOAuth: []]
       tags: [complexch]
@@ -521,11 +606,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/ComplexChallengeGoal'
         '403':
-          $ref: '#/components/responses/AdminAccessRequired'
+          $ref: '#/components/responses/PermissionDenied'
         '404':
           $ref: '#/components/responses/ComplexchGoalNotFound'
     patch:
       operationId: ComplexChallengeGoalUpdate
+      deprecated: true
       summary: Обновление цели испытания
       security: [TalentOAuth: []]
       tags: [complexch]
@@ -540,7 +626,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ComplexChallengeGoal'
         '403':
-          $ref: '#/components/responses/AdminAccessRequired'
+          $ref: '#/components/responses/PermissionDenied'
         '404':
           $ref: '#/components/responses/ComplexchGoalNotFound'
         '409':
@@ -549,6 +635,7 @@ paths:
           $ref: '#/components/responses/ValidationErrors'
     delete:
       operationId: ComplexChallengeGoalDelete
+      deprecated: true
       summary: Удаление цели испытания
       security: [TalentOAuth: []]
       tags: [complexch]
@@ -557,7 +644,7 @@ paths:
         '204':
           description: Цель удалена
         '403':
-          $ref: '#/components/responses/AdminAccessRequired'
+          $ref: '#/components/responses/PermissionDenied'
         '409':
           $ref: '#/components/responses/ComplexchNotUpdatable'
         '404':
@@ -566,6 +653,7 @@ paths:
   /complexch/results:
     get:
       operationId: ComplexChallengesResultsList
+      deprecated: true
       summary: Список результатов прохождения агрегатных испытаний
       security: []
       tags: [complexch]
@@ -766,7 +854,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Instrument'
         '403':
-          $ref: '#/components/responses/AdminAccessRequired'
+          $ref: '#/components/responses/PermissionDenied'
         '409':
           $ref: '#/components/responses/InstrumentCompetencyIDConflict'
         '422':
@@ -807,7 +895,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Instrument'
         '403':
-          $ref: '#/components/responses/AdminAccessRequired'
+          $ref: '#/components/responses/PermissionDenied'
         '404':
           $ref: '#/components/responses/InstrumentNotFound'
         '409':
@@ -855,7 +943,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Tradition'
         '403':
-          $ref: '#/components/responses/AdminAccessRequired'
+          $ref: '#/components/responses/PermissionDenied'
         '409':
           $ref: '#/components/responses/TraditionNameConflict'
 
@@ -894,7 +982,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Tradition'
         '403':
-          $ref: '#/components/responses/AdminAccessRequired'
+          $ref: '#/components/responses/PermissionDenied'
         '404':
           $ref: '#/components/responses/TraditionNotFound'
         '409':
@@ -1186,6 +1274,20 @@ components:
         icon_url:
           type: string
           description: URL иконки награды.
+    Challenge:
+      type: object
+      required:
+        - id
+        - name
+        - description
+      properties:
+        id:
+          type: integer
+          format: int32
+        name:
+          type: string
+        description:
+          type: string
     ComplexChallengeBaseWritable:
       type: object
       properties:
@@ -1724,6 +1826,13 @@ components:
         $ref: '#/components/schemas/ValidationError'
 
   parameters:
+    challenge_id:
+      name: challenge_id
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int32
     complexch_id:
       name: complexch_id
       in: path
@@ -1852,18 +1961,6 @@ components:
       description: JWT, полученный [OAuth провайдером платформы Талант](/api/docs/).
 
   responses:
-    AdminAccessRequired:
-      description: Доступ без прав администратора запрещен
-      content:
-        application/json:
-          schema:
-            type: object
-            required:
-              - error_message
-            properties:
-              error_message:
-                type: string
-                description: Текстовое описание ошибки.
     AfterWithOrderBy:
       x-summary: Параметр after с некорректной сортировкой
       description: Параметр after использован с параметрами сортировки не по ID в возрастающем порядке
@@ -1876,6 +1973,17 @@ components:
             properties:
               error_message:
                 type: string
+    ChallengesV2List:
+      description: Список испытаний
+      headers:
+        X-Count:
+          $ref: '#/components/headers/X-Count'
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/Challenge'
     ComplexchGoalNotFound:
       description: Цель испытания не найдена
       content:
@@ -1912,14 +2020,63 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
-    TraditionForInstrumentNotFound:
-      description: Необходимо использовать существующий ID традиции
+    InstrumentNotFound:
+      description: Инструмент не найден
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
-    InstrumentNotFound:
-      description: Инструмент не найден
+    NotFound:
+      description: Запрошенный объект не найден
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - error_message
+            properties:
+              error_message:
+                type: string
+    PassedChallengesV2List:
+      description: Список пройденных испытаний
+      headers:
+        X-Count:
+          $ref: '#/components/headers/X-Count'
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              type: object
+              required:
+                - challenge_id
+                - user_id
+                - passed_at
+              properties:
+                challenge_id:
+                  type: integer
+                  format: int32
+                user_id:
+                  type: integer
+                  format: int32
+                passed_at:
+                  type: string
+                  format: date-time
+                  description: Дата прохождения испытания
+    PermissionDenied:
+      description: Доступ без прав администратора запрещен
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - error_message
+            properties:
+              error_message:
+                type: string
+                description: Текстовое описание ошибки.
+    TraditionForInstrumentNotFound:
+      description: Необходимо использовать существующий ID традиции
       content:
         application/json:
           schema:

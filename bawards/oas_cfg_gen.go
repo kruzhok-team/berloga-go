@@ -5,13 +5,13 @@ package bawards
 import (
 	"net/http"
 
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/metric"
-	"go.opentelemetry.io/otel/trace"
-
 	ht "github.com/ogen-go/ogen/http"
 	"github.com/ogen-go/ogen/ogenregex"
 	"github.com/ogen-go/ogen/otelogen"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/trace"
 )
 
 var regexMap = map[string]ogenregex.Regexp{
@@ -32,6 +32,7 @@ type otelConfig struct {
 	Tracer         trace.Tracer
 	MeterProvider  metric.MeterProvider
 	Meter          metric.Meter
+	Attributes     []attribute.KeyValue
 }
 
 func (cfg *otelConfig) initOTEL() {
@@ -44,7 +45,9 @@ func (cfg *otelConfig) initOTEL() {
 	cfg.Tracer = cfg.TracerProvider.Tracer(otelogen.Name,
 		trace.WithInstrumentationVersion(otelogen.SemVersion()),
 	)
-	cfg.Meter = cfg.MeterProvider.Meter(otelogen.Name)
+	cfg.Meter = cfg.MeterProvider.Meter(otelogen.Name,
+		metric.WithInstrumentationVersion(otelogen.SemVersion()),
+	)
 }
 
 type clientConfig struct {
@@ -89,13 +92,13 @@ type baseClient struct {
 
 func (cfg clientConfig) baseClient() (c baseClient, err error) {
 	c = baseClient{cfg: cfg}
-	if c.requests, err = c.cfg.Meter.Int64Counter(otelogen.ClientRequestCount); err != nil {
+	if c.requests, err = otelogen.ClientRequestCountCounter(c.cfg.Meter); err != nil {
 		return c, err
 	}
-	if c.errors, err = c.cfg.Meter.Int64Counter(otelogen.ClientErrorsCount); err != nil {
+	if c.errors, err = otelogen.ClientErrorsCountCounter(c.cfg.Meter); err != nil {
 		return c, err
 	}
-	if c.duration, err = c.cfg.Meter.Float64Histogram(otelogen.ClientDuration); err != nil {
+	if c.duration, err = otelogen.ClientDurationHistogram(c.cfg.Meter); err != nil {
 		return c, err
 	}
 	return c, nil
@@ -125,6 +128,13 @@ func WithMeterProvider(provider metric.MeterProvider) Option {
 		if provider != nil {
 			cfg.MeterProvider = provider
 		}
+	})
+}
+
+// WithAttributes specifies default otel attributes.
+func WithAttributes(attributes ...attribute.KeyValue) Option {
+	return otelOptionFunc(func(cfg *otelConfig) {
+		cfg.Attributes = attributes
 	})
 }
 

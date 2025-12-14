@@ -14,14 +14,14 @@ type SecuritySource interface {
 	// BerlogaJWT provides BerlogaJWT security value.
 	// JWT, полученный эндпоинтом
 	// [issue-token](/berloga-idp/docs/#operation/IssueToken).
-	BerlogaJWT(ctx context.Context, operationName string) (BerlogaJWT, error)
+	BerlogaJWT(ctx context.Context, operationName OperationName) (BerlogaJWT, error)
 	// TalentOAuth provides TalentOAuth security value.
 	// JWT, полученный [OAuth провайдером платформы
 	// Талант](/api/docs/).
-	TalentOAuth(ctx context.Context, operationName string) (TalentOAuth, error)
+	TalentOAuth(ctx context.Context, operationName OperationName) (TalentOAuth, error)
 }
 
-func (s *Client) securityBerlogaJWT(ctx context.Context, operationName string, req *http.Request) error {
+func (s *Client) securityBerlogaJWT(ctx context.Context, operationName OperationName, req *http.Request) error {
 	t, err := s.sec.BerlogaJWT(ctx, operationName)
 	if err != nil {
 		return errors.Wrap(err, "security source \"BerlogaJWT\"")
@@ -29,7 +29,7 @@ func (s *Client) securityBerlogaJWT(ctx context.Context, operationName string, r
 	req.Header.Set("Authorization", t.APIKey)
 	return nil
 }
-func (s *Client) securityTalentOAuth(ctx context.Context, operationName string, req *http.Request) error {
+func (s *Client) securityTalentOAuth(ctx context.Context, operationName OperationName, req *http.Request) error {
 	t, err := s.sec.TalentOAuth(ctx, operationName)
 	if err != nil {
 		return errors.Wrap(err, "security source \"TalentOAuth\"")
