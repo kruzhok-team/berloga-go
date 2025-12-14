@@ -50,6 +50,9 @@ func TestServiceKeyAuth(t *testing.T) {
 			if err != nil {
 				errm = err.Error()
 			}
+			if tt.errm != "" {
+				tt.errm = "credentials auth: " + tt.errm
+			}
 			if errm != tt.errm {
 				t.Fatalf("В ошибке `%s`, ожидалось `%s`", err, tt.errm)
 			}

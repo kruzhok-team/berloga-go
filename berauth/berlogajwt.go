@@ -22,6 +22,8 @@ type Player struct {
 	JWT           jwt.Token
 	ApplicationID uuid.UUID
 	PlayerID      uuid.UUID
+	ClientName    string
+	ClientVersion string
 }
 
 // GetPlayer возвращает учетные данные игрока из контекста или ошибку ErrMissingBerlogaJWT.
@@ -52,6 +54,11 @@ type berlogaJWT struct {
 	jwks jwk.Set
 }
 
+const (
+	BerlogaJWTClientName    = "cnm"
+	BerlogaJWTClientVersion = "cvr"
+)
+
 // Auth implements Authenticator
 func (self *berlogaJWT) Auth(ctx context.Context, credentials string) (context.Context, error) {
 	if credentials == "" {
@@ -70,6 +77,12 @@ func (self *berlogaJWT) Auth(ctx context.Context, credentials string) (context.C
 	p.PlayerID, err = uuid.Parse(p.JWT.Subject())
 	if err != nil {
 		return ctx, err
+	}
+	if v, ok := p.JWT.Get(BerlogaJWTClientName); ok {
+		p.ClientName = v.(string)
+	}
+	if v, ok := p.JWT.Get(BerlogaJWTClientVersion); ok {
+		p.ClientVersion = v.(string)
 	}
 	return SetPlayer(ctx, p), nil
 }
